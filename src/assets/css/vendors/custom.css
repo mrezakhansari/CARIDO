@@ -1,0 +1,156 @@
+@font-face {
+    font-family: 'sans';
+    src: url('../../font/iransans.woff') format('woff'), url('../../font/iransans.otf') format('otf');
+    font-weight: normal;
+    font-style: normal;
+    font-variant: normal;
+  }
+  
+  @font-face {
+    font-family: 'sans_bold';
+    src: url('../../font/IRANSans-Bold-web.woff') format('woff'), url('../../font/IRANSans-Bold-web.otf') format('otf');
+    font-weight: normal;
+    font-style: normal;
+    font-variant: normal;
+  }
+  
+  @font-face {
+    font-family: 'sans_light';
+    src: url('../../font/IRANSssansLight.woff') format('woff'), url('../../font/IRANSssansLight.otf') format('otf');
+    font-weight: normal;
+    font-style: normal;
+    font-variant: normal;
+  }
+  
+  @font-face {
+    font-family: 'sans_medium';
+    src: url('../../font/IRANSansMedium.woff') format('woff'), url('../../font/IRANSansMedium.otf') format('otf');
+    font-weight: normal;
+    font-style: normal;
+    font-variant: normal;
+  }
+
+  #root{
+      font-family: 'sans' !important;
+  }
+  
+  h2{
+      font-family: 'sans';
+  }
+
+  .rtl{
+      direction: rtl;
+  }
+
+  h6{
+    font-family: 'sans';
+}
+
+.app-sidebar{
+  font-family: 'sans' !important;
+}
+
+.customFont{
+  font-family: 'sans' !important;
+}
+
+.customIconSizes{
+  height: 50px;
+  width: 50px;
+}
+
+.scrollx{
+  overflow-y: scroll;
+}
+
+.error{
+  color: rgb(228, 35, 35);
+  text-align: right;
+}
+
+.success{
+  color: rgb(46, 136, 46);
+  text-align: right;
+}
+
+.labelDescription{
+  color: black;
+  font-weight: bold;
+}
+
+.DatePickerCustomFont{
+  color: black;
+  font-weight: bold;
+  font-size: medium;
+  text-align: right;
+}
+
+.labelValue{
+  color: rgb(5, 151, 5);
+}
+
+.guessedOperation{
+  color: rgb(209, 30, 30);
+}
+
+.customButton{
+  border-radius: 20%;
+}
+
+
+.bg-gallery-1 {
+ background-image: url("../../img/photos/19.jpg"); 
+  background-size: cover;
+  background-size: 100% 100%;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+   transition: background 0.3s; 
+} 
+
+
+
+.bg-gallery-2 {
+  background-image: url("../../img/photos/19.jpg"); 
+   background-size: cover;
+   background-size: 100% 100%;
+   background-attachment: fixed;
+   background-position: center;
+   background-repeat: no-repeat;
+   transition: background 0.3s; 
+   background-color: rgba(218, 225, 230, 0.575);
+ } 
+
+
+@media(max-width: 768px){
+  .bg-gallery-1 {
+       background-image:url("../../img/photos/19-small.png"); 
+   }
+}
+
+.customBackgroundColor{
+  background-color:  rgba(218, 225, 230, 0.356);
+}
+
+.scroll{
+  overflow-y: scroll;
+  overflow-x: hidden;
+  max-height: 740px;
+}
+
+
+.each-slide > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  height: 500px;
+  width: 100%;
+  border-radius: 15px;
+
+  border: rgb(97, 81, 79) 2px solid;
+}
+
+iframe.example { width: 100%; height: 740px; overflow-x: hidden; overflow-y: hidden; }
+
+

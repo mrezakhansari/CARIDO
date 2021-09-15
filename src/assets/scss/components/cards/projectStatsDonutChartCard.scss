@@ -1,0 +1,27 @@
+// Donut Chart  CSS Ends
+.donut .ct-done .ct-slice-donut {
+  stroke: #0cc27e;
+  stroke-width: 24px;
+}
+.donut .ct-progress .ct-slice-donut {
+  stroke: #ffc107;
+  stroke-width: 16px;
+}
+.donut .ct-outstanding .ct-slice-donut {
+  stroke: #7e57c2;
+  stroke-width: 8px;
+}
+
+.donut .ct-started .ct-slice-donut {
+  stroke: #2196f3;
+  stroke-width: 32px;
+}
+
+.donut .ct-label {
+  text-anchor: middle;
+  alignment-baseline: middle;
+  font-size: 20px;
+  fill: #868e96;
+}
+
+// Donut Chart  CSS Ends

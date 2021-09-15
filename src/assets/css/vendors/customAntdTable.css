@@ -1,0 +1,13 @@
+
+  
+  .ant-table-tbody > tr > td {
+    height: 4vh;
+    padding: 1px;
+    text-align: center;
+  }
+  .ant-table-thead > tr > th {
+    height: 4vh;
+    padding: 2px;
+    text-align: center !important;
+  }
+  

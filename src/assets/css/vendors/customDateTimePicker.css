@@ -1,0 +1,27 @@
+.custom-calendar {
+  box-shadow: 0 1em 3em rgba(19, 231, 125, 0.2);
+  font-size: 8px !important; /* default to 10px */
+}
+
+.custom-today-day {
+  color: #d61997;
+  border: 1px solid #d61997;
+}
+
+.custom-today-day::after {
+  visibility: hidden; /* hide small border under the text */
+}
+
+.customSize {
+  border: 0px solid #ced4da;
+  margin: 0%;
+  width: inherit;
+  font-size: 0.95rem;
+  padding: 0%;
+}
+
+.overlay{
+  z-index: 1000;
+}
+
+

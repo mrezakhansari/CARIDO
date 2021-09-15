@@ -1,0 +1,19 @@
+{
+    "MapTracking": "/mapTracking",
+    "OnlineTracking" : "/onlineTracking",
+    "Finance":"/finance",
+    "Auth": {
+        "Logout": "/logout",
+        "Login": "/login"
+    },
+    "Admin": {
+        "Users": "/admin/users",
+        "Dashboard": "/admin/dashboard",
+        "Vehicles":"/admin/vehicles",
+        "Products":"/admin/products"
+    },
+    "PaymentResult":"/paymentResult",
+    "UserProfile":"/userProfile",
+    "Home": "/",
+    "FirstPage":"/firstPage"
+}
