@@ -30,7 +30,12 @@ axios.interceptors.response.use(null, error => {
     if (error.response.data.error.message === "Imei exist") {
       toast.error("تکراری است IMEI کد");
     }
-    else {toast.error("خطا در برقراری ارتباط با سرور. لطفا با ادمین سایت تماس بگیرید");}
+    else if (error.response.data.error.message === "Imei not exist or used by another user"){
+      toast.error("قبلا ثبت نشده است IMEI کد")
+    }
+    else {
+      toast.error("خطا در برقراری ارتباط با سرور. لطفا با ادمین سایت تماس بگیرید");
+    }
     console.log(error.response, error); // eeno bayad log begirim
     //toastr.error('Server Error','An Unexpected error occured!')
   }

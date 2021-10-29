@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Monitor, LogOut,DollarSign,MapPin } from "react-feather";
+import { Home, Monitor, LogOut, DollarSign, MapPin, Calendar } from "react-feather";
 import urls from '../urls.json';
 
 const MenuList = [
@@ -23,7 +23,8 @@ const MenuList = [
             // { name: "داشبورد مدیریتی", key: "ADMIN-DASHBOARD", url: urls.Admin.Dashboard, child: [] },
             { name: "مدیریت کاربران", key: "ADMIN-USERS", url: urls.Admin.Users, child: [] },
             { name: "مدیریت وسیله ها", key: "ADMIN-VEHICLES", url: urls.Admin.Vehicles, child: [] },
-            { name: "مدیریت محصولات", key: "ADMIN-PRODUCTS", url: urls.Admin.Products, child: [] }
+            { name: "مدیریت محصولات", key: "ADMIN-PRODUCTS", url: urls.Admin.Products, child: [] },
+            { name: "گزارش ها", key: "ADMIN-DASHBOARD", url: urls.Admin.Dashboard, child: [] }
         ]
     },
     {

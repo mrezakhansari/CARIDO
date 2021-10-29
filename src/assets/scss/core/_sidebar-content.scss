@@ -158,11 +158,12 @@
         &.has-sub {
            > a > .item-arrow {
               svg {
-                 transform: rotate(0);
+                 transform: rotate(-180deg);
                  transition: -webkit-transform 0.2s ease-in-out;
-                 position: absolute;
+                 position: relative;
                  right: 15px;
                  top: 18px;
+                 float: left;
               }
            }
            > a {
@@ -171,11 +172,11 @@
         }
         &.open {
            > a > .item-arrow svg {
-              -webkit-transform: rotate(90deg);
-              -moz-transform: rotate(90deg);
-              -ms-transform: rotate(90deg);
-              -o-transform: rotate(90deg);
-              transform: rotate(90deg);
+              -webkit-transform: rotate(-270deg);
+              -moz-transform: rotate(-270deg);
+              -ms-transform: rotate(-270deg);
+              -o-transform: rotate(-270deg);
+              transform: rotate(-270deg);
            }
            > a {
               background: rgba(200, 200, 200, 0.2);

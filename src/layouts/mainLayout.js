@@ -79,7 +79,7 @@ class MainLayout extends PureComponent {
                            toggleSidebarMenu={this.toggleSidebarMenu.bind(this)}
                            sidebarState={this.state.sidebarState}
                         />
-                        <main style={{height:'90%',overflowY:"auto"}} >{this.props.children}</main>
+                        <main style={{height:'90%',width:'100%'}} className="scrollHidden">{this.props.children}</main>
                       {/* <Footer />  */}
                      </div>
                   )}

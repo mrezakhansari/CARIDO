@@ -8,6 +8,11 @@ export const GetAllVehicles = () => {
     return http.get(apiEndpoint + 'GetVehicles');
 }
 
+export const GetVehicleDetails = () => {
+    return http.get(apiEndpoint + 'GetVehicleDetails');
+}
+
+
 export const GetMyVehicles = () => {
     return http.get(apiEndpoint + 'GetMyVehicles');
 }
@@ -100,6 +105,18 @@ export const EnableVehicleMonitorMode = (vehicleId) => {
 
 export const EnableVehicleTrackerMode = (vehicleId) => {
     return http.put(apiEndpoint + 'EnableVehicleTrackerMode', vehicleId);
+}
+
+export const EnableVehicle = (vehicleId) => {
+    return http.put(apiEndpoint + 'EnableVehicle', vehicleId);
+}
+
+export const DisableVehicle = (vehicleId) => {
+    return http.put(apiEndpoint + 'DisableVehicle', vehicleId);
+}
+
+export const GetCompanyType = () => {
+    return http.get(apiEndpoint + 'GetCompanyType');
 }
 
 

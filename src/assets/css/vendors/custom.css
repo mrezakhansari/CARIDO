@@ -63,6 +63,29 @@
   overflow-y: scroll;
 }
 
+.customPlatewidth{
+  width: 7vw;
+}
+
+.head-text{
+  position: relative;
+  }
+  
+  .text-on-image{
+    position: absolute;
+    margin-bottom:20px;
+    /* right: 50%;*/
+    left: 12%;
+    bottom: 1%;
+    top: 1%;
+    
+  }
+
+.scrollHidden{
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
 .error{
   color: rgb(228, 35, 35);
   text-align: right;

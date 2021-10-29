@@ -1,3 +1,4 @@
+//#region ------------ Imports ----------------------------------------------
 import React, { useEffect, useState } from "react";
 import { Row, Col, Button, FormGroup, Modal, ModalHeader, ModalBody, ModalFooter, UncontrolledTooltip } from 'reactstrap';
 import { Edit2, Trash2 } from "react-feather";
@@ -22,6 +23,9 @@ import Select from "react-select";
 import { Formik, Form } from "formik";
 import FormikControl from "../../components/common/formik/FormikControl";
 import * as Yup from 'yup';
+import config from '../../config.json';
+
+//#endregion -------------------------------------------------------------------------------
 
 toast.configure({ bodyClassName: "customFont rtl" });
 
@@ -29,16 +33,97 @@ const UserProfile = (props) => {
 
     //#region Variables and Initial Functions -----------------------------------------
 
+    const vehicleType = [
+        { label: 'موتور', value: 0 },
+        { label: 'اتومبیل', value: 1 }
+    ];
+
+    const vehicleSize = [
+        { label: 'سبک', value: 0 },
+        { label: 'سنگین', value: 1 }
+    ];
+
+
     const CreateVehicleInitialValues = {
         phoneNumber: '',
         imei: '',
-        title: ''
+        title: '',
+        carPlateNo: '',
+        motorPlateNo: '',
+        driverName: '',
+        selectVehicleType: '',
+        selectVehicleSize: '',
+        selectVehicleBrand: '',
+        selectVehicleModel: ''
     }
 
     const CreateVehicleValidationSchema = Yup.object({
         title: Yup.string().required("!نام وسیله را وارد کنید"),
         phoneNumber: Yup.string().required("!شماره موبایل را وارد کنید"),
+        driverName: Yup.string().required("!نام راننده را وارد کنید"),
         imei: Yup.string().required("!را وارد کنید IMEI کد"),
+        selectVehicleType: Yup.object().required("نوع وسیله را انتخاب کنید"),
+        selectVehicleSize: Yup.object().test("validSelectVehicleSize", "اندازه وسیله را انتخاب کنید", (value) => {
+            if (state.selectedVehicleType && state.selectedVehicleType.value === 1) {
+                if (value === "" || value === undefined || value === null)
+                    return false;
+                else return true;
+            }
+            else {
+                return true;
+            }
+        }),
+        selectVehicleBrand: Yup.object().test("validSelectVehicleBrand", "برند خودرو را انتخاب کنید", (value) => {
+            if (state.selectedVehicleType && state.selectedVehicleType.value === 1) {
+                if (value === "" || value === undefined || value === null)
+                    return false;
+                else return true;
+            }
+            else {
+                return true;
+            }
+        }),
+        selectVehicleModel: Yup.object().test("validSelectVehicleModel", "مدل خودرو را انتخاب کنید", (value) => {
+            if (state.selectedVehicleType && state.selectedVehicleType.value === 1) {
+                if (value === "" || value === undefined || value === null)
+                    return false;
+                else return true;
+            }
+            else {
+                return true;
+            }
+        }),
+        motorPlateNo: Yup.string().test("validMotorPlateNo", "شماره پلاک را وارد کنید", (value) => {
+            if (state.selectedVehicleType && state.selectedVehicleType.value === 0) {
+                if (value === "" || value === undefined || value === null)
+                    return false;
+                else return true;
+            }
+            else {
+                return true;
+            }
+        }),
+        carPlateNo: Yup
+            .object()
+            //    .required("شماره پلاک را وارد کنید !")
+            .test("validPlateNo", "شماره پلاک را وارد کنید", (value) => {
+                if (state.selectedVehicleType && state.selectedVehicleType.value === 1) {
+                    console.log("validPlateNo", value)
+                    if (value &&
+                        (value.firstPart !== '' && value.firstPart !== undefined && value.firstPart.length === 2) &&
+                        (value.secondPart !== '' && value.secondPart !== undefined && value.secondPart.length === 1) &&
+                        (value.thirdPart !== '' && value.thirdPart !== undefined && value.thirdPart.length === 3) &&
+                        (value.forthPart !== '' && value.forthPart !== undefined && value.forthPart.length === 2)) {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                else {
+                    return true;
+                }
+            })
     });
 
     const Columns = [
@@ -101,7 +186,15 @@ const UserProfile = (props) => {
 
         editVehicleInfoModal: false,
         deleteVehicleInfoModal: false,
-        createVehicleInfoModal: false
+        createVehicleInfoModal: false,
+
+        companyTypes: [],
+        brands: [],
+        models: [],
+        selectedBrand: {},
+        selectedModel: {},
+        selectedVehicleType: {},
+        selectedVehicleSize: {}
     });
 
     const createDataModelForDataTabel = (data) => {
@@ -111,6 +204,29 @@ const UserProfile = (props) => {
     }
 
     useEffect(() => {
+
+        vehicleService.GetCompanyType()
+            .then(res1 => {
+                if (res1.data.success && res1.data.result.length > 0) {
+                    console.log(res1)
+                    setState(prevState => {
+                        return {
+                            ...prevState,
+                            companyTypes: res1.data.result,
+                            brands: res1.data.result.map(c => {
+                                return {
+                                    label: c.title,
+                                    value: c.id
+                                }
+                            })
+                        }
+                    })
+                }
+            })
+
+        if (!config.useAuthentication) {
+            return;
+        }
         const user = auth.getCurrentUser();
         if (user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] &&
             user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] === "Admin") {
@@ -962,7 +1078,6 @@ const UserProfile = (props) => {
         });
         createVehicleInfoToggle();
     }
-
     const createVehicleInfoToggle = () => {
         setState(prevState => {
             return {
@@ -971,10 +1086,33 @@ const UserProfile = (props) => {
             }
         });
     }
-
     const handleSubmitCreateVehicleInfo = (values) => {
 
-        vehicleService.CreateVehicle({ ..._.pick(values, ["title", "phoneNumber", "imei"]), gpsType: 0 })
+        console.log('submit', values);
+        let parameters = {
+            ..._.pick(values, ["title", "phoneNumber", "imei", "driverName"]),
+            vehicleType: values.selectVehicleType.value
+        };
+        if (state.selectedVehicleType && state.selectedVehicleType.value === 1) {
+            parameters = {
+                ...parameters,
+                plaque: values.carPlateNo.firstPart + "-" +
+                    values.carPlateNo.secondPart + "-" +
+                    values.carPlateNo.thirdPart + "-" +
+                    values.carPlateNo.forthPart,
+                vehicleSizeType: values.selectVehicleSize.value,
+                modelId: values.selectVehicleModel.value
+            }
+        }
+        else {
+            parameters = {
+                ...parameters,
+                plaque: values.motorPlateNo,
+                vehicleSizeType: 0,
+                modelId:0
+            }
+        }
+        vehicleService.CreateVehicle(parameters)
             .then(response => {
                 if (response.data.success) {
 
@@ -996,10 +1134,10 @@ const UserProfile = (props) => {
                 }
             })
             .catch(error => {
-                //console.log(error.message);
+               // console.log(error.message);
+               // toast.error('asdf')
             })
     }
-
     const handleCancelCreateVehicleInfo = () => {
         setState(prevState => {
             return {
@@ -1008,6 +1146,43 @@ const UserProfile = (props) => {
             }
         });
         createVehicleInfoToggle();
+    }
+    const handleSelectedVehicleType = (value) => {
+        console.log('handle selected vehicle type', value, state);
+        setState(prevState => {
+            return {
+                ...prevState,
+                selectedVehicleType: value
+            }
+        })
+    }
+    const handleSelectedVehicleBrand = (selectedValue) => {
+        console.log('handle selected vehicle brand', selectedValue);
+        let temp = state.companyTypes.filter(c => c.id === selectedValue.value);
+        if (temp.length > 0) {
+            setState(prevState => {
+                return {
+                    ...prevState,
+                    selectedBrand: selectedValue,
+                    selectedModel: null,
+                    models: temp[0].models.map(c => {
+                        return {
+                            label: c.title,
+                            value: c.id
+                        }
+                    })
+                }
+            })
+        }
+    }
+    const handleSelectedVehicleModel = (selectedValue) => {
+        console.log('handle selected vehicle model', selectedValue);
+        setState(prevState => {
+            return {
+                ...prevState,
+                selectedModel: selectedValue
+            }
+        })
     }
 
     //#endregion ---------------------------------------------------------
@@ -1044,7 +1219,7 @@ const UserProfile = (props) => {
 
                 </Row>
                 <Row className="customBackgroundColor justify-content-md-center">
-                    <Col md="12" className="d-flex align-items-center justify-content-center" style={{height:"50vh",paddingBottom:"75px"}} >
+                    <Col md="12" className="d-flex align-items-center justify-content-center" style={{ height: "50vh", paddingBottom: "75px" }} >
                         <div className="justify-content-center" >
                             {state.currentVehicle.id &&
                                 <Planet
@@ -1219,10 +1394,10 @@ const UserProfile = (props) => {
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitOverSpeedEnable}>
                         Save
-                        </Button>{" "}
+                    </Button>{" "}
                     <Button color="secondary" onClick={handleCancelOverSpeedEnable}>
                         Cancel
-                        </Button>
+                    </Button>
                 </ModalFooter>
             </Modal>
             {/* Over Distance Modal ------------------------------------------------------------------*/}
@@ -1259,10 +1434,10 @@ const UserProfile = (props) => {
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitOverDistanceEnable}>
                         Save
-                        </Button>{" "}
+                    </Button>{" "}
                     <Button color="secondary" onClick={handleCancelOverDistanceEnable}>
                         Cancel
-                        </Button>
+                    </Button>
                 </ModalFooter>
             </Modal>
             {/* Edit Vehicle Modal -------------------------------------------------------------------*/}
@@ -1323,10 +1498,10 @@ const UserProfile = (props) => {
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitEditVehicleInfo}>
                         Save
-                        </Button>{" "}
+                    </Button>{" "}
                     <Button color="secondary" onClick={handleCancelEditVehicleInfo}>
                         Cancel
-                        </Button>
+                    </Button>
                 </ModalFooter>
             </Modal>
             {/* Delete Vehicle Modal -----------------------------------------------------------------*/}
@@ -1339,14 +1514,14 @@ const UserProfile = (props) => {
                 <ModalHeader toggle={deleteVehicleInfoToggle} className="customFont text-right">حذف کردن وسیله</ModalHeader>
                 <ModalBody className="customFont text-right">
                     آیا مطمئن هستید وسیله {state.currentVehicle.title} حذف شود ؟
-               </ModalBody>
+                </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitDeleteVehicleInfo}>
                         Save
-                        </Button>{" "}
+                    </Button>{" "}
                     <Button color="secondary" onClick={handleCancelDeleteVehicleInfo}>
                         Cancel
-                        </Button>
+                    </Button>
                 </ModalFooter>
             </Modal>
             {/* Create Vehicle Modal -------------------------------------------------------------------*/}
@@ -1372,12 +1547,12 @@ const UserProfile = (props) => {
                     >
                         {(formik) => {
                             ////console.log("Formik props values", formik);
-
+                            console.log(formik)
                             return (
                                 <React.Fragment>
                                     <Form>
                                         <Row>
-                                            <Col md="6">
+                                            <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
                                                 <FormikControl
                                                     control="inputMaskDebounce"
                                                     mask="09999999999"
@@ -1388,7 +1563,7 @@ const UserProfile = (props) => {
                                                     placeholder="شماره موبایل"
                                                 />
                                             </Col>
-                                            <Col md="6">
+                                            <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
                                                 <FormikControl
                                                     control="input"
                                                     type="text"
@@ -1401,7 +1576,17 @@ const UserProfile = (props) => {
                                             </Col>
                                         </Row>
                                         <Row>
-                                            <Col md="12">
+                                            <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
+                                                <FormikControl
+                                                    control="input"
+                                                    type="text"
+                                                    name="driverName"
+                                                    id="driverName"
+                                                    className="rtl"
+                                                    placeholder="نام راننده"
+                                                />
+                                            </Col>
+                                            <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
                                                 <FormikControl
                                                     control="inputMaskDebounce"
                                                     mask="999999999999999"
@@ -1413,14 +1598,118 @@ const UserProfile = (props) => {
                                                 />
                                             </Col>
                                         </Row>
+                                        <Row>
+                                            <Col md="12" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
+                                                <FormikControl
+                                                    control="customSelect"
+                                                    name="selectVehicleType"
+                                                    options={vehicleType}
+                                                    id="selectVehicleType"
+                                                    className="rtl"
+                                                    classN="rtl"
+                                                    placeholder="نوع وسیله"
+                                                    onSelectedChanged={handleSelectedVehicleType}
+                                                />
+                                            </Col>
+                                        </Row>
+                                        {state.selectedVehicleType &&
+                                            state.selectedVehicleType.value == 1 &&
+                                            <Row>
+                                                <Col md="12" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
+                                                    <FormikControl
+                                                        control="customSelect"
+                                                        name="selectVehicleSize"
+                                                        options={vehicleSize}
+                                                        id="selectVehicleSize"
+                                                        className="rtl"
+                                                        classN="rtl"
+                                                        placeholder="اندازه وسیله"
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        }
+                                        {state.selectedVehicleType &&
+                                            //state.selectedVehicleType.value &&
+                                            state.selectedVehicleType.value === 1 &&
+                                            state.brands &&
+                                            state.brands.length > 0 &&
+                                            <Row className="d-flex justify-content-md-end">
+                                                {
+                                                    state.selectedVehicleType &&
+                                                    ///    state.selectedVehicleType.value &&
+                                                    state.selectedVehicleType.value === 1 &&
+                                                    state.brands &&
+                                                    state.brands.length > 0 &&
+                                                    state.selectedBrand &&
+                                                    state.models &&
+                                                    state.models.length > 0 &&
+                                                    <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
+                                                        <FormikControl
+                                                            control="customSelect"
+                                                            name="selectVehicleModel"
+                                                            options={state.models}
+                                                            selectedValue={state.selectedModel}
+                                                            id="selectVehicleModel"
+                                                            className="rtl"
+                                                            classN="rtl"
+                                                            placeholder="مدل"
+                                                            onSelectedChanged={handleSelectedVehicleModel}
+                                                        />
+                                                    </Col>
+                                                }
+                                                <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
+                                                    <FormikControl
+                                                        control="customSelect"
+                                                        name="selectVehicleBrand"
+                                                        options={state.brands}
+                                                        id="selectVehicleBrand"
+                                                        className="rtl"
+                                                        classN="rtl"
+                                                        placeholder="برند"
+                                                        onSelectedChanged={handleSelectedVehicleBrand}
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        }
+                                        {
+                                            state.selectedVehicleType &&
+                                            state.selectedVehicleType.value == 1 &&
+                                            <Row>
+                                                <Col md="12" className={"ltr"} style={{ marginTop: "2vh" }}>
+                                                    <FormikControl
+                                                        control="customPlate"
+                                                        type="text"
+                                                        name="carPlateNo"
+                                                        id="carPlateNo"
+                                                        className="ltr"
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        }
+                                        {
+                                            state.selectedVehicleType &&
+                                            state.selectedVehicleType.value == 0 &&
+                                            <Row className="d-flex justify-content-md-center">
+                                                <Col md="12">
+                                                    <FormikControl
+                                                        control="input"
+                                                        type="text"
+                                                        name="motorPlateNo"
+                                                        id="motorPlateNo"
+                                                        className="rtl"
+                                                        placeholder="شماره پلاک موتور"
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        }
                                         <div className="form-actions center">
                                             <Button color="primary" type="submit" className="mr-1" disabled={!formik.isValid}>
                                                 {/* <LogIn size={16} color="#FFF" />  */}
-                                                            Save
-                                                        </Button>
+                                                Save
+                                            </Button>
                                             <Button color="secondary" type="button" onClick={handleCancelCreateVehicleInfo}>
                                                 Cancel
-                                                         </Button>
+                                            </Button>
                                         </div>
                                     </Form>
                                 </React.Fragment>

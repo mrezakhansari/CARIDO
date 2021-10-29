@@ -24,7 +24,7 @@ let DefaultIcon = Leaflet.icon({
 });
 Leaflet.Marker.prototype.options.icon = DefaultIcon;
 
-let center = [35.728954, 51.388721];
+//let center = [35.728954, 51.388721];
 var commandTypeName = {
     0: 'نامعلوم',
     1: 'در حال ارسال موقعیت فعلی',
@@ -37,7 +37,7 @@ var commandTypeName = {
 
 };
 
-const limeOptions = { color: 'red' }
+const limeOptions = { color: 'blue' }
 toast.configure({ bodyClassName: "customFont" });
 
 class MapTracking extends Component {
@@ -57,7 +57,9 @@ class MapTracking extends Component {
         selectedDateFrom: "",
         popUpData: "",
         firstPoint: [],
-        lastPoint: []
+        lastPoint: [],
+        center: [35.728954, 51.388721],
+        showMap: false
     }
     columns = [
         {
@@ -106,6 +108,7 @@ class MapTracking extends Component {
                 .then(response => {
                     if (response.data.success && response.data.result.length > 0) {
                         const result = response.data.result;
+                        console.log('getallvehicle', result)
                         this.setState({
                             userVehiclesList: result, userVehiclesListForGrid: this.createDataModelForDataTabel(result)
                         }
@@ -147,7 +150,7 @@ class MapTracking extends Component {
 
     handleMapTrackingHistory = (record) => {
         //console.log(record);
-        this.setState({ trackingList: [], trackingListInfo: [], firstPoint: [], lastPoint: [], showHistoryForm: true, currentVehicle: record })
+        this.setState({ trackingList: [], trackingListInfo: [], firstPoint: [], lastPoint: [], currentVehicle: record,showMap:false })
         // this.setState({ showHistoryForm: true, currentVehicle: record });
     }
 
@@ -179,7 +182,9 @@ class MapTracking extends Component {
         if (this.state.selectedDateTo === "") {
             return toast.error("تاریخ انتهای بازه را وارد کنید");
         }
-        if (this.state.currentVehicle.id && this.state.showHistoryForm) {
+        if (this.state.currentVehicle.id 
+           // && this.state.showHistoryForm
+            ) {
             const FromDate = new Date(this.state.selectedDateFrom);
             const ToDate = new Date(this.state.selectedDateTo);
             if (FromDate > ToDate) {
@@ -190,25 +195,34 @@ class MapTracking extends Component {
             }
             vehicleService.GetVehicleGpsLocationHistory({ from: this.state.selectedDateFrom, to: this.state.selectedDateTo, vehicleId: this.state.currentVehicle.id }).then(response => {
                 let { result, success } = response.data;
-                //console.log(result,success)
+                console.log(result, success)
                 this.setState({ trackingList: [], trackingListInfo: [], firstPoint: [], lastPoint: [] })
-                if (!success || result.length === 0) {
+                if (result.length === 0) {
                     return toast.error('در این بازه ی تاریخی مسیری ثبت نشده است')
                 }
                 if (success) {
-                    const tempList = result.filter(f => f.lat !== 0 && f.lon !== 0).map(c => {
+                    const tempList = result.gpsLocations.filter(f => f.lat !== 0 && f.lon !== 0).map(c => {
                         return ([c.lat, c.lon]);
                     });
                     const firstPoint = _(tempList).orderBy(c => c.creationTime).head();
                     const lastPoint = _(tempList).orderBy(c => c.creationTime).last();
-                    console.log(response.data);
+                    console.log('GetVehicleGpsLocationHistory', response.data);
                     if (tempList.length > 1) {
                         //const temp = _(tempList).head();
                         const temp = tempList[tempList.length / 2];
                         // //console.log(temp);
-                        center = temp;
+                        //center = temp;
+                        this.setState({
+                            center: temp
+                        })
                     }
-                    this.setState({ trackingList: tempList, trackingListInfo: result, firstPoint: firstPoint, lastPoint: lastPoint })
+                    this.setState({
+                        trackingList: tempList,
+                        trackingListInfo: result.gpsLocations,
+                        firstPoint: firstPoint,
+                        lastPoint: lastPoint,
+                        showMap: true
+                    })
                 }
                 ////console.log(response);
             })
@@ -263,7 +277,8 @@ class MapTracking extends Component {
                         </Row>
                     </Col>
                     <Col>
-                        {this.state.currentVehicle.id && this.state.showHistoryForm &&
+                        {this.state.currentVehicle.id && 
+                        //this.state.showHistoryForm &&
                             <React.Fragment>
                                 <Row>
                                     <Col className="d-flex align-items-center justify-content-center mt-3">
@@ -281,66 +296,68 @@ class MapTracking extends Component {
                         }
                     </Col>
                 </Row>
-                {this.state.currentVehicle.id && this.state.showHistoryForm &&
+                {this.state.currentVehicle.id && this.state.showMap &&
                     <Row className="customBackgroundColor mt-1">
                         <Col md="12" className="mt-2">
 
                             <Row>
                                 <Col md="12 mb-2">
-                                    <MapContainer center={center} zoom={13} style={{ height: '62vh' }}>
-                                        <TileLayer
-                                            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
-                                        />
-                                        <Polyline pathOptions={limeOptions} positions={this.state.trackingList}
-                                            eventHandlers={{
-                                                click: () => {
-                                                    //console.log('marker clicked')
-                                                }
-                                                ,
-                                                mouseover: (e) => {
-                                                    const lat = e.latlng.lat.toFixed(2);
-                                                    const lng = e.latlng.lng.toFixed(2);
-                                                    //console.log('mouse over', e.latlng, lat, lng);
-                                                    const data = _(this.state.trackingListInfo).filter(c => c.lat.toFixed(2) === lat && c.lon.toFixed(2) === lng).head();
-                                                    //console.log(data);
-                                                    if (data !== undefined) {
-                                                        e.target.openPopup();
-                                                        this.setState({
-                                                            popUpData:
-                                                                <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                                    <span>سرعت: </span>
-                                                                    <strong>KM/H {data.speed}</strong>
-                                                                    <br />
-                                                                    <span>وضعیت خودرو: </span>
-                                                                    <strong>{commandTypeName[data.commandType]}</strong>
-                                                                </div>
-                                                        });
+                                    
+                                        <MapContainer center={this.state.center} zoom={13} style={{ height: '62vh' }}>
+                                            <TileLayer
+                                                attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
+                                            />
+                                            <Polyline pathOptions={limeOptions} positions={this.state.trackingList}
+                                                eventHandlers={{
+                                                    click: () => {
+                                                        //console.log('marker clicked')
+                                                    }
+                                                    ,
+                                                    mouseover: (e) => {
+                                                        const lat = e.latlng.lat.toFixed(2);
+                                                        const lng = e.latlng.lng.toFixed(2);
+                                                        //console.log('mouse over', e.latlng, lat, lng);
+                                                        const data = _(this.state.trackingListInfo).filter(c => c.lat.toFixed(2) === lat && c.lon.toFixed(2) === lng).head();
+                                                        //console.log(data);
+                                                        if (data !== undefined) {
+                                                            e.target.openPopup();
+                                                            this.setState({
+                                                                popUpData:
+                                                                    <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                                        <span>سرعت: </span>
+                                                                        <strong>KM/H {data.speed}</strong>
+                                                                        <br />
+                                                                        <span>وضعیت خودرو: </span>
+                                                                        <strong>{commandTypeName[data.commandType]}</strong>
+                                                                    </div>
+                                                            });
 
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            }>
-                                            {/* <Tooltip sticky>sticky Tooltip for Polygon</Tooltip> */}
-                                            <Popup>{this.state.popUpData}</Popup>
-                                        </Polyline>
-                                        {this.state.firstPoint.length > 0 && <Marker position={this.state.firstPoint}>
-                                            <Popup>
-                                                <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                    <span>شروع </span>
-                                                </div>
-                                            </Popup>
-                                        </Marker>}
-                                        {this.state.lastPoint.length > 0 && <Marker position={this.state.lastPoint}>
-                                            <Popup>
-                                                <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                    <span>پایان </span>
-                                                </div>
-                                            </Popup>
-                                        </Marker>}
+                                                }>
+                                                {/* <Tooltip sticky>sticky Tooltip for Polygon</Tooltip> */}
+                                                <Popup>{this.state.popUpData}</Popup>
+                                            </Polyline>
+                                            {this.state.firstPoint.length > 0 && <Marker position={this.state.firstPoint}>
+                                                <Popup>
+                                                    <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                        <span>شروع </span>
+                                                    </div>
+                                                </Popup>
+                                            </Marker>}
+                                            {this.state.lastPoint.length > 0 && <Marker position={this.state.lastPoint}>
+                                                <Popup>
+                                                    <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                        <span>پایان </span>
+                                                    </div>
+                                                </Popup>
+                                            </Marker>}
 
-                                    </MapContainer>
+                                        </MapContainer>
+                                    
                                 </Col>
                             </Row>
                         </Col>

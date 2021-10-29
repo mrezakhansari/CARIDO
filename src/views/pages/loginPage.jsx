@@ -40,7 +40,8 @@ const onSubmit = async (values, props) => {
     password: values.password,
     rememberClient:true
   };
-  //console.log(parameters)
+  console.log(parameters)
+  //return props.history.replace("/userProfile")
 
   try {
     //const { result, message } = await auth.login(_.pick(parameters, ["userNameOrEmailAddress", "password","rememberClient"]));

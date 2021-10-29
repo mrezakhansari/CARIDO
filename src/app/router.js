@@ -27,7 +27,8 @@ const LazyLogout = lazy(() => import("../views/pages/logoutPage"));
 const LazyLoginPage = lazy(() => import("../views/pages/loginPage"));
 const LazyVehicles = lazy(() => import("../views/pages/vehiclesPage"));
 const LazyUsersPage = lazy(() => import("../views/pages/usersPage"));
-const LazyProductsPage = lazy(()=>import("../views/pages/productsPage"));
+const LazyProductsPage = lazy(() => import("../views/pages/productsPage"));
+const LazyDashboardPage = lazy(() => import("../views/pages/dashboardPage"));
 
 //#endregion --------------------------------------------------------------------------
 
@@ -48,7 +49,7 @@ class Router extends Component {
       <BrowserRouter basename="/">
         <Switch>
 
-        <FirstPageRoute
+          <FirstPageRoute
             exact
             path={urls.FirstPage}
             render={(matchprops) => (
@@ -102,15 +103,15 @@ class Router extends Component {
               </Suspense>
             )}
           />
-          {/* <MainLayoutRoutes
+          <MainLayoutRoutes
             exact
             path={urls.Admin.Dashboard}
             render={(matchprops) => (
               <Suspense fallback={<Spinner />}>
-                <LazyMaintainance {...matchprops} />
+                <LazyDashboardPage {...matchprops} />
               </Suspense>
             )}
-          /> */}
+          />
           <LoginLayoutRoute
             exact
             path={urls.Auth.Login}
