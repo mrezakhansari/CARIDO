@@ -44,7 +44,7 @@ const VehiclesPage = (props) => {
     const getRemainDateTime = (text) => {
         if (text) {
             let temp = text.split(":")[0];
-            return `${temp} ساعت`
+            return `${temp} روز`
         }
         return ""
     }
@@ -101,7 +101,7 @@ const VehiclesPage = (props) => {
             //dataIndex: 'user.fullName',
             key: 'fullName',
             width: '5vw',
-            render: (text, record) => <Tag color="processing">{record.user && record.user.fullName}</Tag>
+            render: (text, record) => <Tag color="processing">{record.user && record.user.name}</Tag>
         },
         {
             title: 'سیم کارت GPS',
@@ -112,9 +112,9 @@ const VehiclesPage = (props) => {
         },
         {
             title: 'شماره مدیر دستگاه',
-            dataIndex: 'userPhoneNo',
-            key: 'userPhoneNo',
-            width: '7vw'
+            key: 'userName',
+            render: (text, record) => <Tag color="gold">{record.user && record.user.userName}</Tag>,
+            width: '5vw'
         },
         {
             title: 'زمان آخرین نقطه دریافتی',
@@ -162,9 +162,10 @@ const VehiclesPage = (props) => {
         },
         {
             title: 'زمان راه اندازی',
-            dataIndex: 'startedDateTime',
-            key: 'startedDateTime',
-            width: '5vw'
+            dataIndex: 'beginTime',
+            key: 'beginTime',
+            render: (text, record) => <Tag color="red" style={{ direction: "ltr", marginBottom: "2vh", paddingTop: "1vh" }}>{getDateTime(text)}</Tag>,
+            width: '3vw'
         },
         {
             title: 'زمان ایجاد',
