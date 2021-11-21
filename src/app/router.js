@@ -130,7 +130,7 @@ class Router extends Component {
               </Suspense>
             )}
           />
-          <MainLayoutRoutes
+          {/* <MainLayoutRoutes
             exact
             path={urls.OnlineTracking}
             render={(matchprops) => (
@@ -138,7 +138,7 @@ class Router extends Component {
                 <LazyOnlineTrackingPage {...matchprops} />
               </Suspense>
             )}
-          />
+          /> */}
           <MainLayoutRoutes
             exact
             path={urls.Finance}

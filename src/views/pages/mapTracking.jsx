@@ -4,17 +4,20 @@ import { MapContainer, TileLayer, Popup, Polyline, Marker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import _ from 'lodash';
 import * as vehicleService from '../../services/vehicleService';
-import { Table, Tag, Space } from 'antd';
+import { Table, Tag, Space, ConfigProvider } from 'antd';
 import { toast } from 'react-toastify';
 import * as auth from "../../services/authService";
+import "antd/dist/antd.css";
 import antdClass2 from "../../assets/css/vendors/customAntdTable.css";
 import MapPNG from '../../assets/icons/Map.png';
+import HistoryTrackingPNG from '../../assets/icons/LocationConstraint.png';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
-import { Row, Col, FormGroup } from 'reactstrap';
+import { Row, Col, FormGroup, Button } from 'reactstrap';
 import { DatePicker } from "jalali-react-datepicker";
 import CustomDateTimePicker from '../../components/common/customDateTimePicker';
+import he_IL from "antd/es/locale/fa_IR";
 
 let DefaultIcon = Leaflet.icon({
     ...Leaflet.Icon.Default.prototype.options,
@@ -59,20 +62,33 @@ class MapTracking extends Component {
         firstPoint: [],
         lastPoint: [],
         center: [35.728954, 51.388721],
-        showMap: false
+        showMap: false,
+        showMapMenu: false,
+        currentPage: 1
     }
     columns = [
+        {
+            title: 'ردیف',
+            key: 'row',
+            render: (text, record, index) => (this.state.currentPage - 1) * 10 + index + 1,
+            width: '4em'
+        },
         {
             title: 'دستگاه',
             dataIndex: 'title',
             key: 'title',
-            width: '10vw'
+            width: '10em'
         },
         {
             title: 'نوع GPS',
             dataIndex: 'gpsType',
             key: 'gpsType',
-            width: '7vw'
+            render: text => (
+                <Tag color="geekblue">{
+                    text === 0 ? 'Coban' : 'Concox'
+                }</Tag>
+            ),
+            width: '5em'
         },
         {
             title: 'IMEI',
@@ -83,10 +99,10 @@ class MapTracking extends Component {
                     text
                 }</Tag>
             ),
-            width: '10vw'
+            width: '10em'
         },
         {
-            title: 'عملیات',
+            title: 'تاریخچه ردیابی',
             key: 'action',
             render: (text, record) => (
                 <Space size="middle" style={{ alignContent: "center", alignItems: "center" }}>
@@ -95,7 +111,19 @@ class MapTracking extends Component {
                     </div>
                 </Space>
             ),
-            width: '11vw'
+            width: '6em'
+        },
+        {
+            title: 'موقعیت فعلی',
+            key: 'action',
+            render: (text, record) => (
+                <Space size="middle" style={{ alignContent: "center", alignItems: "center" }}>
+                    <div className="btn logo-img mt-1" size="sm" >
+                        <img src={HistoryTrackingPNG} alt="logo" width="20%" title="Tracking History" />
+                    </div>
+                </Space>
+            ),
+            width: '6em'
         }
     ];
 
@@ -123,14 +151,49 @@ class MapTracking extends Component {
                 })
         }
         else {
-            vehicleService.GetMyVehicles()
+            // vehicleService.GetMyVehicles()
+            //     .then(response => {
+            //         if (response.data.success && response.data.result.length > 0) {
+            //             const result = response.data.result;
+            //             this.setState({
+            //                 userVehiclesList: result, userVehiclesListForGrid: this.createDataModelForDataTabel(result)
+            //             }
+            //             );
+            //         }
+            //         else {
+            //             return toast.warning("هیچ دستگاهی برای شما ثبت نشده است");
+            //         }
+            //     })
+            //     .catch(error => {
+            //         //
+            //     })
+            vehicleService.GetMyAndAssignVehicles()
                 .then(response => {
-                    if (response.data.success && response.data.result.length > 0) {
+                    console.log('result my and assign vehicles', response)
+                    if (response.data.success && (
+                        (response.data.result.myVehicles && response.data.result.myVehicles.length > 0) ||
+                        (response.data.result.assignVehicles && response.data.result.assignVehicles.length > 0))) {
                         const result = response.data.result;
-                        this.setState({
-                            userVehiclesList: result, userVehiclesListForGrid: this.createDataModelForDataTabel(result)
-                        }
-                        );
+                        let vehicles = [];
+                        result.myVehicles.map(item => {
+                            vehicles.push({
+                                ...item,
+                                isAssign: false
+                            })
+                        });
+                        result.assignVehicles.map(item => {
+                            vehicles.push({
+                                ...item,
+                                isAssign: true
+                            })
+                        })
+                        console.log(vehicles)
+                        this.setState(
+                            {
+                                userVehiclesList: vehicles,
+                                userVehiclesListForGrid: this.createDataModelForDataTabel(vehicles)
+
+                            });
                     }
                     else {
                         return toast.warning("هیچ دستگاهی برای شما ثبت نشده است");
@@ -150,7 +213,15 @@ class MapTracking extends Component {
 
     handleMapTrackingHistory = (record) => {
         //console.log(record);
-        this.setState({ trackingList: [], trackingListInfo: [], firstPoint: [], lastPoint: [], currentVehicle: record,showMap:false })
+        this.setState({
+            trackingList: [],
+            trackingListInfo: [],
+            firstPoint: [],
+            lastPoint: [],
+            currentVehicle: record,
+            showMap: false,
+            showMapMenu: true
+        })
         // this.setState({ showHistoryForm: true, currentVehicle: record });
     }
 
@@ -182,9 +253,9 @@ class MapTracking extends Component {
         if (this.state.selectedDateTo === "") {
             return toast.error("تاریخ انتهای بازه را وارد کنید");
         }
-        if (this.state.currentVehicle.id 
-           // && this.state.showHistoryForm
-            ) {
+        if (this.state.currentVehicle.id
+            // && this.state.showHistoryForm
+        ) {
             const FromDate = new Date(this.state.selectedDateFrom);
             const ToDate = new Date(this.state.selectedDateTo);
             if (FromDate > ToDate) {
@@ -231,10 +302,12 @@ class MapTracking extends Component {
                 });
         }
     }
+
     diffInMonths = (end, start) => {
         var timeDiff = Math.abs(end.getTime() - start.getTime());
         return Math.round(timeDiff / (2e3 * 3600 * 365.25));
     }
+
     // handlePopupData = (e) => 
     //     {
     //         //console.log('mouse over', e);
@@ -242,130 +315,164 @@ class MapTracking extends Component {
     //         this.setState({ popUpData: e.latlng.lat })
     //     }
 
+    handleReturnToMainMenu = () => {
+        this.setState({
+            showMap: true,
+            showMapMenu: false
+        })
+    }
     render() {
         console.log(this.state);
         return (<React.Fragment>
-            <div className="container" >
-                <Row className="customBackgroundColor justify-content-md-center">
-                    <Col md="6" className="my-2">
-                        <Table
-                            //className={antdClass2}
-                            //rowClassName={antdClass2}
-                            columns={this.columns}
-                            dataSource={this.state.userVehiclesListForGrid}
-                            pagination={false}
-                            scroll={{ x: 'max-content', y: 100 }}
-                        />
+            <div className="" >
+                {!this.state.showMapMenu &&
+                    <Row className=" justify-content-md-center">
+                        <Col md="12" className="my-2">
+                            <ConfigProvider direction={"rtl"} locale={he_IL}>
 
-                    </Col>
-                    <Col md="3">
-                        <Row>
-                            <Col md="10" >
-                                <FormGroup >
-                                    <CustomDateTimePicker name="FromDate" key="FromDate" datePlaceholder="از تاریخ" timePlaceholder="از ساعت" onSelectedChanged={this.handleDateFromChange} />
-                                    {/* <DatePicker label="از تاریخ" className="DatePickerCustomFont" key="FromDate" timePicker={false} onClickSubmitButton={(value) => this.handleDateFromChange(value)} /> */}
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md="10">
-                                <FormGroup>
-                                    <CustomDateTimePicker name="ToDate" key="ToDate" datePlaceholder="تا تاریخ" timePlaceholder="تا ساعت" onSelectedChanged={this.handleDateToChange} />
-                                    {/* <DatePicker className="DatePickerCustomFont" label="تا تاریخ" key="FromDate" timePicker={false} onClickSubmitButton={(value) => this.handleDateToChange(value)} /> */}
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                    </Col>
-                    <Col>
-                        {this.state.currentVehicle.id && 
-                        //this.state.showHistoryForm &&
-                            <React.Fragment>
-                                <Row>
-                                    <Col className="d-flex align-items-center justify-content-center mt-3">
-                                        <Tag color="green" style={{ fontSize: "1rem" }}>وسیله: {this.state.currentVehicle.title} </Tag>
-                                    </Col>
+                                <Table
+                                    className={antdClass2}
+                                    columns={this.columns}
+                                    dataSource={this.state.userVehiclesListForGrid}
+                                    rowClassName={(record, index) => !record.isAssign ? 'table-row-light' : 'table-row-dark'}
+                                    //pagination={false}
+                                    //tableLayout="auto"
+                                    pagination={{
+                                        total: this.state.userVehiclesListForGrid.length,
+                                        current: this.state.currentPagee,
+                                        position: ['topLeft'],
+                                        onChange: (page, pageSize) => {
+                                            console.log('current page: ', page)
+                                            this.setState({ currentPage: page })
+                                        }
+                                    }}
+                                    scroll={{ y: 'calc(100vh - 250px)', x: 'max-content' }}
+                                />
+                            </ConfigProvider>
 
-
-                                </Row>
-                                <Row>
-                                    <Col className="d-flex align-items-center justify-content-center mt-3">
-                                        <button className="btn btn-warning mt-3" type="button" style={{ float: "right" }} onClick={this.handleGetGPSHistory}>جستجو</button>
-                                    </Col></Row>
-                            </React.Fragment>
-
-                        }
-                    </Col>
-                </Row>
-                {this.state.currentVehicle.id && this.state.showMap &&
-                    <Row className="customBackgroundColor mt-1">
-                        <Col md="12" className="mt-2">
-
-                            <Row>
-                                <Col md="12 mb-2">
-                                    
-                                        <MapContainer center={this.state.center} zoom={13} style={{ height: '62vh' }}>
-                                            <TileLayer
-                                                attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                            //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
-                                            />
-                                            <Polyline pathOptions={limeOptions} positions={this.state.trackingList}
-                                                eventHandlers={{
-                                                    click: () => {
-                                                        //console.log('marker clicked')
-                                                    }
-                                                    ,
-                                                    mouseover: (e) => {
-                                                        const lat = e.latlng.lat.toFixed(2);
-                                                        const lng = e.latlng.lng.toFixed(2);
-                                                        //console.log('mouse over', e.latlng, lat, lng);
-                                                        const data = _(this.state.trackingListInfo).filter(c => c.lat.toFixed(2) === lat && c.lon.toFixed(2) === lng).head();
-                                                        //console.log(data);
-                                                        if (data !== undefined) {
-                                                            e.target.openPopup();
-                                                            this.setState({
-                                                                popUpData:
-                                                                    <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                                        <span>سرعت: </span>
-                                                                        <strong>KM/H {data.speed}</strong>
-                                                                        <br />
-                                                                        <span>وضعیت خودرو: </span>
-                                                                        <strong>{commandTypeName[data.commandType]}</strong>
-                                                                    </div>
-                                                            });
-
-                                                        }
-                                                    }
-                                                }
-                                                }>
-                                                {/* <Tooltip sticky>sticky Tooltip for Polygon</Tooltip> */}
-                                                <Popup>{this.state.popUpData}</Popup>
-                                            </Polyline>
-                                            {this.state.firstPoint.length > 0 && <Marker position={this.state.firstPoint}>
-                                                <Popup>
-                                                    <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                        <span>شروع </span>
-                                                    </div>
-                                                </Popup>
-                                            </Marker>}
-                                            {this.state.lastPoint.length > 0 && <Marker position={this.state.lastPoint}>
-                                                <Popup>
-                                                    <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                        <span>پایان </span>
-                                                    </div>
-                                                </Popup>
-                                            </Marker>}
-
-                                        </MapContainer>
-                                    
-                                </Col>
-                            </Row>
                         </Col>
-                    </Row>}
+                    </Row>
+                }
 
+                {this.state.showMapMenu &&
 
+                    <React.Fragment>
+                        <Row>
+                            {this.state.currentVehicle.id &&
+                                <Col md="3" style={{ marginTop: "1%", marginBottom: "1%", fontWeight: "bold", fontSize: "1em" }}
+                                    className="d-flex align-items-start justify-content-start">
+                                    وسیله انتخاب شده: <Tag color="orange">{this.state.currentVehicle.title}</Tag>
+                                </Col>
+                            }
+                            <Col md="3" className="d-flex align-items-start justify-content-start">
+                                <div style={{ marginTop: "-7%" }}>
+                                    <CustomDateTimePicker name="FromDate" key="FromDate" datePlaceholder="از تاریخ" timePlaceholder="از ساعت" onSelectedChanged={this.handleDateFromChange} />
+                                </div>
+                            </Col>
+                            <Col md="3" className="d-flex align-items-start justify-content-start">
+                                <div style={{ marginTop: "-7%" }}>
+                                    <CustomDateTimePicker name="ToDate" key="ToDate" datePlaceholder="تا تاریخ" timePlaceholder="تا ساعت" onSelectedChanged={this.handleDateToChange} />
+                                </div>
+                            </Col>
+                            <Col md="3" className="d-flex align-items-end justify-content-end">
+
+                                <Button color="success" className=" ml-1" onClick={this.handleGetGPSHistory}>
+                                    جستجو
+                                </Button>
+                                <Button className="customBackColor" onClick={this.handleReturnToMainMenu}>
+                                    بازگشت
+                                </Button>
+
+                            </Col>
+                        </Row>
+
+                        <React.Fragment>
+                            {this.state.currentVehicle.id && this.state.showMap &&
+                                <Row className=" mt-1">
+                                    <Col md="12" className="mt-2">
+                                        <Row>
+                                            <Col md="12 mb-2">
+                                                <MapContainer center={this.state.center} zoom={13} style={{ height: '70em' }}>
+                                                    <TileLayer
+                                                        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                                    //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
+                                                    />
+                                                    <Polyline pathOptions={limeOptions} positions={this.state.trackingList}
+                                                        eventHandlers={{
+                                                            click: () => {
+                                                                //console.log('marker clicked')
+                                                            }
+                                                            ,
+                                                            mouseover: (e) => {
+                                                                const lat = e.latlng.lat.toFixed(2);
+                                                                const lng = e.latlng.lng.toFixed(2);
+                                                                //console.log('mouse over', e.latlng, lat, lng);
+                                                                const data = _(this.state.trackingListInfo).filter(c => c.lat.toFixed(2) === lat && c.lon.toFixed(2) === lng).head();
+                                                                //console.log(data);
+                                                                if (data !== undefined) {
+                                                                    e.target.openPopup();
+                                                                    this.setState({
+                                                                        popUpData:
+                                                                            <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                                                <span>سرعت: </span>
+                                                                                <strong>KM/H {data.speed}</strong>
+                                                                                <br />
+                                                                                <span>وضعیت خودرو: </span>
+                                                                                <strong>{commandTypeName[data.commandType]}</strong>
+                                                                            </div>
+                                                                    });
+
+                                                                }
+                                                            }
+                                                        }
+                                                        }>
+                                                        {/* <Tooltip sticky>sticky Tooltip for Polygon</Tooltip> */}
+                                                        <Popup>{this.state.popUpData}</Popup>
+                                                    </Polyline>
+                                                    {this.state.firstPoint.length > 0 && <Marker position={this.state.firstPoint}>
+                                                        <Popup>
+                                                            <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                                <span>شروع </span>
+                                                            </div>
+                                                        </Popup>
+                                                    </Marker>}
+                                                    {this.state.lastPoint.length > 0 && <Marker position={this.state.lastPoint}>
+                                                        <Popup>
+                                                            <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                                <span>پایان </span>
+                                                            </div>
+                                                        </Popup>
+                                                    </Marker>}
+
+                                                </MapContainer>
+
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
+                            }
+                            {!this.state.showMap &&
+                                <Row className=" mt-1">
+                                    <Col md="12" className="mt-2">
+                                        <Row>
+                                            <Col md="12 mb-2">
+                                                <MapContainer center={this.state.center} zoom={13} style={{ height: '70em' }}>
+                                                    <TileLayer
+                                                        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                                    //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
+                                                    />
+                                                </MapContainer>
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
+                            }
+                        </React.Fragment>
+                    </React.Fragment>
+                }
             </div>
-
         </React.Fragment>
         );
     }

@@ -1,14 +1,16 @@
 //#region ------------ Imports ----------------------------------------------
 import React, { useEffect, useState } from "react";
 import { Row, Col, Button, FormGroup, Modal, ModalHeader, ModalBody, ModalFooter, UncontrolledTooltip } from 'reactstrap';
-import { Edit2, Trash2 } from "react-feather";
+import { Edit2, Trash2, Users, Plus, PlusCircle, Check } from "react-feather";
 import { Planet } from 'react-planet';
 import { toast } from 'react-toastify';
 import { Menu } from 'react-feather';
-import { Table, Tag, Space, Switch } from 'antd';
-//import antdClass2 from "../../assets/css/vendors/customAntdTable.css";
+import { Table, Tag, Space, Switch, ConfigProvider } from 'antd';
+import "antd/dist/antd.css";
+import antdClass2 from "../../assets/css/vendors/customAntdTable.css";
 import _ from 'lodash';
 import * as vehicleService from '../../services/vehicleService';
+import * as assignService from '../../services/assignService';
 import * as auth from "../../services/authService";
 import SpeedometerPNG from '../../assets/icons/Speedometer.png';
 import BatterytheftPNG from '../../assets/icons/Batterytheft.png';
@@ -24,12 +26,14 @@ import { Formik, Form } from "formik";
 import FormikControl from "../../components/common/formik/FormikControl";
 import * as Yup from 'yup';
 import config from '../../config.json';
-
+import he_IL from "antd/es/locale/fa_IR";
 //#endregion -------------------------------------------------------------------------------
 
 toast.configure({ bodyClassName: "customFont rtl" });
 
 const UserProfile = (props) => {
+
+    const [currentPage, setPage] = React.useState(1);
 
     //#region Variables and Initial Functions -----------------------------------------
 
@@ -43,7 +47,6 @@ const UserProfile = (props) => {
         { label: 'سنگین', value: 1 }
     ];
 
-
     const CreateVehicleInitialValues = {
         phoneNumber: '',
         imei: '',
@@ -56,6 +59,14 @@ const UserProfile = (props) => {
         selectVehicleBrand: '',
         selectVehicleModel: ''
     }
+
+    const CreateVehicleAssignInitialValue = {
+        mobileNoAssign: ''
+    }
+
+    const CreateVehicleAssignValidationSchema = Yup.object({
+        mobileNoAssign: Yup.string().required("!شماره موبایل را وارد کنید")
+    });
 
     const CreateVehicleValidationSchema = Yup.object({
         title: Yup.string().required("!نام وسیله را وارد کنید"),
@@ -128,16 +139,27 @@ const UserProfile = (props) => {
 
     const Columns = [
         {
+            title: 'ردیف',
+            key: 'row',
+            render: (text, record, index) => (currentPage - 1) * 10 + index + 1,
+            width: '4em'
+        },
+        {
             title: 'دستگاه',
             dataIndex: 'title',
             key: 'title',
-            width: '10vw'
+            width: '10em'
         },
         {
             title: 'نوع GPS',
             dataIndex: 'gpsType',
             key: 'gpsType',
-            width: '7vw'
+            render: text => (
+                <span >{
+                    text === 0 ? "Coban" : "Concox"
+                }</span>
+            ),
+            width: '7em'
         },
         {
             title: 'IMEI',
@@ -148,6 +170,47 @@ const UserProfile = (props) => {
                     text
                 }</Tag>
             ),
+            width: '10em'
+        },
+        {
+            title: 'عملیات',
+            key: 'action',
+            render: (text, record) => (
+                <Space size="middle" style={{ alignContent: "center", alignItems: "center" }}>
+                    <Button className="btn btn-success mt-1"
+                        size="sm"
+                        disabled={record.isAssign}
+                        onClick={() => handleEditVehicleInfo(record)}>
+                        <Edit2 size={16} />
+                    </Button>
+                    {/* <Button className="btn-danger mt-1 ml-2" size="sm" onClick={() => handleDeleteVehicleInfo(record)}>
+                        <Trash2 size={16} />
+                    </Button> */}
+                    <Button className="btn btn-info mt-1 mr-1"
+                        size="sm"
+                        disabled={record.isAssign}
+                        onClick={() => handleMenuVehicleManagement(record)}>
+                        <Menu size={16} />
+                    </Button>
+                    <Button className="btn btn-warning mt-1 mr-1"
+                        size="sm"
+                        disabled={record.isAssign}
+                        onClick={() => handleAssignVehicleInfo(record)}>
+                        <Users size={16} />
+                    </Button>
+                </Space>
+            ),
+            width: '11em'
+        }
+    ];
+
+    const AssignColumns = [
+        {
+            title: 'شخص تخصیص داده شده',
+            key: 'userAssignName',
+            render: (text, record) => (
+                <Tag color="orange" >{record.user.name}  -  {record.user.userName}</Tag>
+            ),
             width: '10vw'
         },
         {
@@ -155,14 +218,11 @@ const UserProfile = (props) => {
             key: 'action',
             render: (text, record) => (
                 <Space size="middle" style={{ alignContent: "center", alignItems: "center" }}>
-                    <Button className="btn-warning mt-1 ml-2" size="sm" onClick={() => handleEditVehicleInfo(record)}>
-                        <Edit2 size={16} />
-                    </Button>
-                    {/* <Button className="btn-danger mt-1 ml-2" size="sm" onClick={() => handleDeleteVehicleInfo(record)}>
+                    <Button className="btn btn-danger mt-1"
+                        size="sm"
+                        disabled={record.isAssign}
+                        onClick={() => handleDeleteAssignVehicleInfo(record)}>
                         <Trash2 size={16} />
-                    </Button> */}
-                    <Button className="btn-info mt-1" size="sm" onClick={() => handleMenuVehicleManagement(record)}>
-                        <Menu size={16} />
                     </Button>
                 </Space>
             ),
@@ -175,6 +235,7 @@ const UserProfile = (props) => {
         userVehiclesList: [],
         userVehiclesListForGrid: [],
         currentVehicle: {},
+        currentVehicleAssignInfo: {},
 
         overSpeedModal: false,
         overSpeed: 0,
@@ -187,6 +248,7 @@ const UserProfile = (props) => {
         editVehicleInfoModal: false,
         deleteVehicleInfoModal: false,
         createVehicleInfoModal: false,
+        assignVehicleInfoModal: false,
 
         companyTypes: [],
         brands: [],
@@ -194,7 +256,9 @@ const UserProfile = (props) => {
         selectedBrand: {},
         selectedModel: {},
         selectedVehicleType: {},
-        selectedVehicleSize: {}
+        selectedVehicleSize: {},
+
+        showVehicleMenu: false
     });
 
     const createDataModelForDataTabel = (data) => {
@@ -251,15 +315,50 @@ const UserProfile = (props) => {
                 })
         }
         else {
-            vehicleService.GetMyVehicles()
+            // vehicleService.GetMyVehicles()
+            //     .then(response => {
+            //         if (response.data.success && response.data.result.length > 0) {
+            //             const result = response.data.result;
+            //             //console.log(result)
+            //             setState(prevState => {
+            //                 return {
+            //                     ...prevState,
+            //                     userVehiclesList: result, userVehiclesListForGrid: createDataModelForDataTabel(result)
+            //                 }
+            //             });
+            //         }
+            //         else {
+            //             return toast.warning("هیچ دستگاهی برای شما ثبت نشده است");
+            //         }
+            //     })
+            //     .catch(error => {
+            //         //
+            //     })
+            vehicleService.GetMyAndAssignVehicles()
                 .then(response => {
-                    if (response.data.success && response.data.result.length > 0) {
+                    console.log('result my and assign vehicles', response)
+                    if (response.data.success && (
+                        (response.data.result.myVehicles && response.data.result.myVehicles.length > 0) ||
+                        (response.data.result.assignVehicles && response.data.result.assignVehicles.length > 0))) {
                         const result = response.data.result;
-                        //console.log(result)
+                        let vehicles = [];
+                        result.myVehicles.map(item => {
+                            vehicles.push({
+                                ...item,
+                                isAssign: false
+                            })
+                        });
+                        result.assignVehicles.map(item => {
+                            vehicles.push({
+                                ...item,
+                                isAssign: true
+                            })
+                        })
+                        console.log(vehicles)
                         setState(prevState => {
                             return {
                                 ...prevState,
-                                userVehiclesList: result, userVehiclesListForGrid: createDataModelForDataTabel(result)
+                                userVehiclesList: vehicles, userVehiclesListForGrid: createDataModelForDataTabel(vehicles)
                             }
                         });
                     }
@@ -284,7 +383,8 @@ const UserProfile = (props) => {
                 overSpeedStatus: record.isOverSpeedAlarmEnabled,
                 overSpeed: record.overSpeed,
                 overDistanceStatus: record.isOverDistanceAlarmEnabled,
-                overDistance: record.overDistance
+                overDistance: record.overDistance,
+                showVehicleMenu: true
             };
         });
         //console.log("menu device managemenet", record);
@@ -1105,11 +1205,13 @@ const UserProfile = (props) => {
             }
         }
         else {
+            const modelId = _(state.companyTypes).last().models[0].id;
+            //console.log(modelId)
             parameters = {
                 ...parameters,
                 plaque: values.motorPlateNo,
                 vehicleSizeType: 0,
-                modelId:0
+                modelId: modelId
             }
         }
         vehicleService.CreateVehicle(parameters)
@@ -1134,8 +1236,8 @@ const UserProfile = (props) => {
                 }
             })
             .catch(error => {
-               // console.log(error.message);
-               // toast.error('asdf')
+                // console.log(error.message);
+                // toast.error('asdf')
             })
     }
     const handleCancelCreateVehicleInfo = () => {
@@ -1187,177 +1289,451 @@ const UserProfile = (props) => {
 
     //#endregion ---------------------------------------------------------
 
+    //#region Assign Vehicle Info --------------------------------------
+
+    const handleAssignVehicleInfo = async (record) => {
+        console.log('vehicle info for assigning', record);
+        try {
+
+            const { data } = await vehicleService.GetVehicleAssignUser(record.id);
+            console.log(data)
+            if (data.success && data.result.length > 0) {
+                console.log('assign', data)
+                setState(prevState => {
+                    return {
+                        ...prevState,
+                        currentVehicleAssignInfo: data.result,
+                        currentVehicle: record,
+                        showVehicleMenu: false
+                    }
+                })
+                assignVehicleInfoToggle();
+            }
+            else if (data.success === false || data.result.length === 0) {
+                toast.error('نتایجی یافت نشد')
+            }
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const assignVehicleInfoToggle = () => {
+        console.log('modal assign')
+        setState(prevState => {
+            return {
+                ...prevState,
+                assignVehicleInfoModal: !prevState.assignVehicleInfoModal
+            }
+        });
+    }
+
+    const handleDeleteAssignVehicleInfo = async (record) => {
+        console.log('vehicle info for delete assign', record);
+        try {
+
+            const { data } = await assignService.DeleteAssign(record.id);
+            //console.log(data)
+            if (data.success) {
+                const temp = state.currentVehicleAssignInfo.filter(c => c.id !== record.id);
+                console.log('assign', temp)
+                setState(prevState => {
+                    return {
+                        ...prevState,
+                        currentVehicleAssignInfo: temp
+                    }
+                })
+                assignVehicleInfoToggle();
+            }
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const handleSubmitAssignVehicleInfo = async (values, { setSubmitting }) => {
+        setSubmitting(true);
+        console.log('state submitting', state);
+        if (state.currentVehicle && state.currentVehicle.id) {
+            try {
+
+                const { data } = await assignService.CreateAssign({
+                    vehicleId: state.currentVehicle.id,
+                    phoneNumber: values.mobileNoAssign
+                });
+                //console.log(data)
+                if (data.success) {
+                    const response = await vehicleService.GetVehicleAssignUser(state.currentVehicle.id);
+                    console.log(response.data)
+                    if (response.data.success && response.data.result.length > 0) {
+                        //console.log('assign', data)
+                        setState(prevState => {
+                            return {
+                                ...prevState,
+                                currentVehicleAssignInfo: response.data.result,
+                                showVehicleMenu: false
+                            }
+                        })
+                    }
+                }
+            } catch (error) {
+                console.log(error)
+            }
+        }
+        else {
+            return toast.error('وسیله ای انتخاب نشده است')
+        }
+    }
+
+    //#endregion ----------------------------------------------------------
+
+    const handleReturnToMainMenu = () => {
+        setState(prevState => {
+            return {
+                ...prevState,
+                showVehicleMenu: !prevState.showVehicleMenu
+            }
+        })
+    }
 
     return (
         <React.Fragment>
-            <div className="container ">
-                <Row className="customBackgroundColor justify-content-md-center">
-                    <Col md="12" className="mt-2">
-                        <FormGroup>
-                            <Row>
-                                <Col>
-                                    <button className="btn btn-warning rtl"
-                                        style={{ direction: 'rtl', float: 'right' }}
-                                        type="button"
-                                        onClick={handleCreateVehicleInfo}>اضافه کردن وسیله</button>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col md="12">
-                                    <Table
-                                        //className={antdClass2}
-                                        //rowClassName={antdClass2}
-                                        columns={Columns}
-                                        dataSource={state.userVehiclesListForGrid}
-                                        pagination={false}
-                                        scroll={{ x: 'max-content', y: 200 }}
-                                    />
-                                </Col>
-                            </Row>
-                        </FormGroup>
-                    </Col>
+            <div className="">
+                {!state.showVehicleMenu &&
+                    <Row className=" justify-content-md-center">
+                        <Col md="12" className="mt-2">
+                            <FormGroup>
+                                <Row>
+                                    <Col>
+                                        <button className="btn ltr"
+                                            style={{
+                                                direction: 'ltr', float: 'left',
+                                                backgroundColor: '#1597E5', marginBottom: '0.01em'
+                                            }}
+                                            type="button"
+                                            onClick={handleCreateVehicleInfo}>اضافه کردن وسیله</button>
+                                    </Col>
+                                </Row>
+                                <Row>
+                                    <Col md="12">
+                                        <ConfigProvider direction={"rtl"} locale={he_IL}>
 
-                </Row>
-                <Row className="customBackgroundColor justify-content-md-center">
-                    <Col md="12" className="d-flex align-items-center justify-content-center" style={{ height: "50vh", paddingBottom: "75px" }} >
-                        <div className="justify-content-center" >
-                            {state.currentVehicle.id &&
-                                <Planet
-                                    centerContent={<Button color="warning"><Menu size={38} />{state.currentVehicle.title} </Button>}
-                                    hideOrbit={false}
-                                    autoClose
-
-                                    orbitRadius={140}
-                                    bounceOnClose
-                                    rotation={0}
-                                    // the bounce direction is minimal visible
-                                    // but on close it seems the button wobbling a bit to the bottom
-                                    bounceDirection="BOTTOM"
-                                    mass={2}
-                                    tension={400}
-                                    friction={30}
+                                            <Table
+                                                className={antdClass2}
+                                                rowClassName={(record, index) => !record.isAssign ? 'table-row-light' : 'table-row-dark'}
+                                                columns={Columns}
+                                                dataSource={state.userVehiclesListForGrid}
+                                                //pagination={false}
+                                                //tableLayout="auto"
+                                                pagination={{
+                                                    total: state.userVehiclesListForGrid.length,
+                                                    current: currentPage,
+                                                    position: ['topLeft'],
+                                                    onChange: (page, pageSize) => {
+                                                        console.log('current page: ', page)
+                                                        setPage(page);
+                                                    }
+                                                }}
+                                                scroll={{ y: 'calc(100vh - 250px)', x: 'max-content' }}
+                                            />
+                                        </ConfigProvider>
+                                    </Col>
+                                </Row>
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                }
+                {state.showVehicleMenu &&
+                    <React.Fragment>
+                        <Row >
+                            <Col>
+                                <button className="btn btn-transparent ltr"
+                                    style={{ direction: 'ltr', float: 'left', backgroundColor: '#1597E5' }}
+                                    type="button"
+                                    onClick={handleReturnToMainMenu}>بازگشت</button>
+                            </Col>
+                        </Row>
+                        <Row className="customBackgroundColor justify-content-md-center" style={{marginTop:"15em"}}>
+                            <Col md="2"></Col>
+                            <Col md="10" className="d-flex align-items-center justify-content-center" 
+                            >
+                                <div className="d-flex align-items-center" >
+                                    {state.showVehicleMenu && state.currentVehicle.id &&
+                                        <Planet
+                                        
+                                        centerContent={
+                                            
+                                            <Tag color="success" style={{ fontWeight: "bold",padding:'10px',borderRadius:"3",fontSize: "2em", textAlign: "center" }}>{state.currentVehicle.title}</Tag>
+                                        }
+                                            hideOrbit={false}
+                                            autoClose
+                                            open={true}
+                                            orbitRadius={135}
+                                            bounceOnClose
+                                            rotation={0}
+                                            // the bounce direction is minimal visible
+                                            // but on close it seems the button wobbling a bit to the bottom
+                                            bounceDirection="BOTTOM"
+                                            mass={2}
+                                            tension={400}
+                                            friction={30}
+                                        >
+                                            {/* <Button
+                                    // active={state.currentDevice.isOverSpeedEnable == true}
+                                    color={state.currentVehicle.isVehicleTurnOnAlarmEnabled === true ? 'info' : 'transparent'}
+                                    style={{ borderColor: '#1CBCD8', textAlign: "center" }}
+                                    onClick={() => handleVehicleTurnOnEnable(state.currentVehicle)}
+                                    id="vehicleTurnOnButton"
                                 >
-                                    <Button
-                                        // active={state.currentDevice.isOverSpeedEnable == true}
-                                        color={state.currentVehicle.isVehicleTurnOnAlarmEnabled === true ? 'info' : 'transparent'}
-                                        style={{ borderColor: '#1CBCD8', textAlign: "center" }}
-                                        onClick={() => handleVehicleTurnOnEnable(state.currentVehicle)}
-                                        id="vehicleTurnOnButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={VehicleTurnOnPNG} alt="VehicleTurnOnPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="top" target="vehicleTurnOnButton">
-                                            Vehicle Turn ON
-                                        </UncontrolledTooltip>
-                                    </Button>
-                                    <Button
-                                        color={state.currentVehicle.isBatteryCutOffAlarmEnabled === true ? 'warning' : 'transparent'}
-                                        style={{ borderColor: '#FF8D60', textAlign: "center" }}
-                                        onClick={() => handleBatteryCutOffAlarmEnable(state.currentVehicle)}
-                                        id="batteryCutOffButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={BatterytheftPNG} alt="BatterytheftPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="left" target="batteryCutOffButton">
-                                            Battery Cut Off
-                                        </UncontrolledTooltip>
+                                    <div className="logo-img">
+                                        <img src={VehicleTurnOnPNG} alt="VehicleTurnOnPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="top" target="vehicleTurnOnButton">
+                                        Vehicle Turn ON
+                                    </UncontrolledTooltip>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isVehicleTurnOnAlarmEnabled === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleVehicleTurnOnEnable(state.currentVehicle)}
+                                                id="vehicleTurnOnButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={VehicleTurnOnPNG} alt="VehicleTurnOnPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="top" target="vehicleTurnOnButton">
+                                                    Vehicle Turn ON
+                                                </UncontrolledTooltip>
+                                            </button>
+                                            {/* <Button
+                                    color={state.currentVehicle.isBatteryCutOffAlarmEnabled === true ? 'warning' : 'transparent'}
+                                    style={{ borderColor: '#FF8D60', textAlign: "center" }}
+                                    onClick={() => handleBatteryCutOffAlarmEnable(state.currentVehicle)}
+                                    id="batteryCutOffButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={BatterytheftPNG} alt="BatterytheftPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="left" target="batteryCutOffButton">
+                                        Battery Cut Off
+                                    </UncontrolledTooltip>
 
-                                    </Button>
-                                    <Button
-                                        // active={state.currentDevice.isOverSpeedEnable == true}
-                                        color={state.currentVehicle.isOverDistanceAlarmEnabled === true ? 'primary' : 'transparent'}
-                                        style={{ borderColor: '#009DA0', textAlign: "center" }}
-                                        onClick={() => handleOverDistanceAlarm()}
-                                        id="overDistanceButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={LocationConstraintPNG} alt="LocationConstraintPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="top" target="overDistanceButton">
-                                            Over Distance {state.currentVehicle.overDistance}
-                                        </UncontrolledTooltip>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isBatteryCutOffAlarmEnabled === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleBatteryCutOffAlarmEnable(state.currentVehicle)}
+                                                id="batteryCutOffButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={BatterytheftPNG} alt="BatterytheftPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="left" target="batteryCutOffButton">
+                                                    Battery Cut Off
+                                                </UncontrolledTooltip>
 
-                                    </Button>
-                                    <Button
-                                        // active={state.currentDevice.isOverSpeedEnable == true}
-                                        color={(state.currentVehicle.isDoorAlarmEnabled) === true ? 'success' : 'transparent'}
-                                        style={{ borderColor: '#0CC27E', textAlign: "center" }}
-                                        onClick={() => handleDoorAlarmEnable(state.currentVehicle)}
-                                        id="openDoorCarButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={OpenDoorCarPNG} alt="OpenDoorCarPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="bottom" target="openDoorCarButton">
-                                            Doors Alarm
-                                        </UncontrolledTooltip>
-                                    </Button>
-                                    <Button
-                                        // active={state.currentDevice.isOverSpeedEnable == true}
-                                        color={(state.currentVehicle.isShockAlarmEnabled) === true ? 'success' : 'transparent'}
-                                        style={{ borderColor: '#0CC27E', textAlign: "center" }}
-                                        onClick={() => handleShockAlarmEnable(state.currentVehicle)}
-                                        id="shockCarButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={ShockCarPNG} alt="ShockCarPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="bottom" target="shockCarButton">
-                                            Shock Alarm
-                                        </UncontrolledTooltip>
-                                    </Button>
-                                    <Button
-                                        // active={state.currentDevice.isOverSpeedEnable == true}
-                                        color={state.currentVehicle.isOverSpeedAlarmEnabled === true ? 'danger' : 'transparent'}
-                                        style={{ borderColor: '#FF586B', textAlign: "center" }}
-                                        onClick={() => handleOverSpeedAlarm()}
-                                        id="overSpeedButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={SpeedometerPNG} alt="SpeedometerPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="bottom" target="overSpeedButton">
-                                            Over Speed {state.currentVehicle.overSpeed} KM/H
-                                        </UncontrolledTooltip>
+                                            </button>
+                                            {/* <Button
+                                    // active={state.currentDevice.isOverSpeedEnable == true}
+                                    color={state.currentVehicle.isOverDistanceAlarmEnabled === true ? 'primary' : 'transparent'}
+                                    style={{ borderColor: '#009DA0', textAlign: "center" }}
+                                    onClick={() => handleOverDistanceAlarm()}
+                                    id="overDistanceButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={LocationConstraintPNG} alt="LocationConstraintPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="top" target="overDistanceButton">
+                                        Over Distance {state.currentVehicle.overDistance}
+                                    </UncontrolledTooltip>
 
-                                    </Button>
-                                    <Button
-                                        color={state.currentVehicle.isStopVehicle === true ? 'secondary' : 'transparent'}
-                                        style={{ borderColor: '#757575', textAlign: "center" }}
-                                        onClick={() => handleStopAndResumeVehicle(state.currentVehicle)}
-                                        id="StopCarButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={StopCarPNG} alt="StopCarPNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="bottom" target="StopCarButton">
-                                            Stop Car
-                                        </UncontrolledTooltip>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isOverDistanceAlarmEnabled === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleOverDistanceAlarm()}
+                                                id="overDistanceButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={LocationConstraintPNG} alt="LocationConstraintPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="top" target="overDistanceButton">
+                                                    Over Distance {state.currentVehicle.overDistance}
+                                                </UncontrolledTooltip>
 
-                                    </Button>
+                                            </button>
+                                            {/* <Button
+                                    // active={state.currentDevice.isOverSpeedEnable == true}
+                                    color={(state.currentVehicle.isDoorAlarmEnabled) === true ? 'success' : 'transparent'}
+                                    style={{ borderColor: '#0CC27E', textAlign: "center" }}
+                                    onClick={() => handleDoorAlarmEnable(state.currentVehicle)}
+                                    id="openDoorCarButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={OpenDoorCarPNG} alt="OpenDoorCarPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="bottom" target="openDoorCarButton">
+                                        Doors Alarm
+                                    </UncontrolledTooltip>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: (state.currentVehicle.isDoorAlarmEnabled) === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleDoorAlarmEnable(state.currentVehicle)}
+                                                id="openDoorCarButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={OpenDoorCarPNG} alt="OpenDoorCarPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="bottom" target="openDoorCarButton">
+                                                    Doors Alarm
+                                                </UncontrolledTooltip>
+                                            </button>
+                                            {/* <Button
+                                    // active={state.currentDevice.isOverSpeedEnable == true}
+                                    color={(state.currentVehicle.isShockAlarmEnabled) === true ? 'success' : 'transparent'}
+                                    style={{ borderColor: '#0CC27E', textAlign: "center" }}
+                                    onClick={() => handleShockAlarmEnable(state.currentVehicle)}
+                                    id="shockCarButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={ShockCarPNG} alt="ShockCarPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="bottom" target="shockCarButton">
+                                        Shock Alarm
+                                    </UncontrolledTooltip>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: (state.currentVehicle.isShockAlarmEnabled) === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleShockAlarmEnable(state.currentVehicle)}
+                                                id="shockCarButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={ShockCarPNG} alt="ShockCarPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="bottom" target="shockCarButton">
+                                                    Shock Alarm
+                                                </UncontrolledTooltip>
+                                            </button>
+                                            {/* <Button
+                                    // active={state.currentDevice.isOverSpeedEnable == true}
+                                    color={state.currentVehicle.isOverSpeedAlarmEnabled === true ? 'danger' : 'transparent'}
+                                    style={{ borderColor: '#FF586B', textAlign: "center" }}
+                                    onClick={() => handleOverSpeedAlarm()}
+                                    id="overSpeedButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={SpeedometerPNG} alt="SpeedometerPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="bottom" target="overSpeedButton">
+                                        Over Speed {state.currentVehicle.overSpeed} KM/H
+                                    </UncontrolledTooltip>
 
-                                    <Button
-                                        color={state.currentVehicle.isTrackerMode === true ? 'secondary' : 'primary'}
-                                        style={{ borderColor: state.currentVehicle.isTrackerMode === true ? '#757575' : '#009DA0', textAlign: "center" }}
-                                        onClick={() => handleTrackerModeOrMonitorMode(state.currentVehicle)}
-                                        id="TrackerModeOrMonitorModeButton"
-                                    >
-                                        <div className="logo-img">
-                                            <img src={state.currentVehicle.isTrackerMode === true ? TrackerModePNG : MonitorModePNG} alt="MonitorModePNG" width="50wh" />
-                                        </div>
-                                        <UncontrolledTooltip placement="right" target="TrackerModeOrMonitorModeButton">
-                                            {state.currentVehicle.isTrackerMode === true ? 'Tracker Mode On' : 'Monitor Mode On'}
-                                        </UncontrolledTooltip>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isOverSpeedAlarmEnabled === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleOverSpeedAlarm()}
+                                                id="overSpeedButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={SpeedometerPNG} alt="SpeedometerPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="bottom" target="overSpeedButton">
+                                                    Over Speed {state.currentVehicle.overSpeed} KM/H
+                                                </UncontrolledTooltip>
 
-                                    </Button>
-                                </Planet>}
+                                            </button>
+                                            {/* <Button
+                                    color={state.currentVehicle.isStopVehicle === true ? 'secondary' : 'transparent'}
+                                    style={{ borderColor: '#757575', textAlign: "center" }}
+                                    onClick={() => handleStopAndResumeVehicle(state.currentVehicle)}
+                                    id="StopCarButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={StopCarPNG} alt="StopCarPNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="bottom" target="StopCarButton">
+                                        Stop Car
+                                    </UncontrolledTooltip>
 
-                        </div>
-                    </Col>
-                </Row>
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isStopVehicle === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleStopAndResumeVehicle(state.currentVehicle)}
+                                                id="StopCarButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={StopCarPNG} alt="StopCarPNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="bottom" target="StopCarButton">
+                                                    Stop Car
+                                                </UncontrolledTooltip>
+
+                                            </button>
+                                            {/* <Button
+                                    color={state.currentVehicle.isTrackerMode === true ? 'secondary' : 'primary'}
+                                    style={{ borderColor: state.currentVehicle.isTrackerMode === true ? '#757575' : '#009DA0', textAlign: "center" }}
+                                    onClick={() => handleTrackerModeOrMonitorMode(state.currentVehicle)}
+                                    id="TrackerModeOrMonitorModeButton"
+                                >
+                                    <div className="logo-img">
+                                        <img src={state.currentVehicle.isTrackerMode === true ? TrackerModePNG : MonitorModePNG} alt="MonitorModePNG" width="50wh" />
+                                    </div>
+                                    <UncontrolledTooltip placement="right" target="TrackerModeOrMonitorModeButton">
+                                        {state.currentVehicle.isTrackerMode === true ? 'Tracker Mode On' : 'Monitor Mode On'}
+                                    </UncontrolledTooltip>
+
+                                </Button> */}
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: state.currentVehicle.isTrackerMode === true ? '#1597E5' : '#009DA0', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isTrackerMode === true ? '#1597E5' : 'primary'
+                                                }}
+                                                onClick={() => handleTrackerModeOrMonitorMode(state.currentVehicle)}
+                                                id="TrackerModeOrMonitorModeButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={state.currentVehicle.isTrackerMode === true ? TrackerModePNG : MonitorModePNG} alt="MonitorModePNG" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="right" target="TrackerModeOrMonitorModeButton">
+                                                    {state.currentVehicle.isTrackerMode === true ? 'Tracker Mode On' : 'Monitor Mode On'}
+                                                </UncontrolledTooltip>
+
+                                            </button>
+                                        </Planet>}
+
+                                </div>
+                            </Col>
+                        </Row>
+                    </React.Fragment>
+                }
             </div>
+
+
             {/* Over Speed Modal ---------------------------------------------------------------------*/}
             <Modal
                 isOpen={state.overSpeedModal}
@@ -1393,13 +1769,14 @@ const UserProfile = (props) => {
                 </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitOverSpeedEnable}>
-                        Save
+                        ثبت
                     </Button>{" "}
-                    <Button color="secondary" onClick={handleCancelOverSpeedEnable}>
-                        Cancel
+                    <Button color="danger" onClick={handleCancelOverSpeedEnable}>
+                        لغو
                     </Button>
                 </ModalFooter>
             </Modal>
+
             {/* Over Distance Modal ------------------------------------------------------------------*/}
             <Modal
                 isOpen={state.overDistanceModal}
@@ -1433,13 +1810,14 @@ const UserProfile = (props) => {
                 </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitOverDistanceEnable}>
-                        Save
+                        ثبت
                     </Button>{" "}
-                    <Button color="secondary" onClick={handleCancelOverDistanceEnable}>
-                        Cancel
+                    <Button color="danger" onClick={handleCancelOverDistanceEnable}>
+                        لغو
                     </Button>
                 </ModalFooter>
             </Modal>
+
             {/* Edit Vehicle Modal -------------------------------------------------------------------*/}
             <Modal
                 isOpen={state.editVehicleInfoModal}
@@ -1497,13 +1875,14 @@ const UserProfile = (props) => {
                 </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitEditVehicleInfo}>
-                        Save
+                        ثبت
                     </Button>{" "}
-                    <Button color="secondary" onClick={handleCancelEditVehicleInfo}>
-                        Cancel
+                    <Button color="danger" onClick={handleCancelEditVehicleInfo}>
+                        لغو
                     </Button>
                 </ModalFooter>
             </Modal>
+
             {/* Delete Vehicle Modal -----------------------------------------------------------------*/}
             <Modal
                 isOpen={state.deleteVehicleInfoModal}
@@ -1517,14 +1896,15 @@ const UserProfile = (props) => {
                 </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitDeleteVehicleInfo}>
-                        Save
+                        ثبت
                     </Button>{" "}
-                    <Button color="secondary" onClick={handleCancelDeleteVehicleInfo}>
-                        Cancel
+                    <Button color="danger" onClick={handleCancelDeleteVehicleInfo}>
+                        لغو
                     </Button>
                 </ModalFooter>
             </Modal>
-            {/* Create Vehicle Modal -------------------------------------------------------------------*/}
+
+            {/* Create Vehicle Modal ------------------------------------------------------------------*/}
             <Modal
                 isOpen={state.createVehicleInfoModal}
                 toggle={createVehicleInfoToggle}
@@ -1705,10 +2085,10 @@ const UserProfile = (props) => {
                                         <div className="form-actions center">
                                             <Button color="primary" type="submit" className="mr-1" disabled={!formik.isValid}>
                                                 {/* <LogIn size={16} color="#FFF" />  */}
-                                                Save
+                                                ثبت
                                             </Button>
-                                            <Button color="secondary" type="button" onClick={handleCancelCreateVehicleInfo}>
-                                                Cancel
+                                            <Button color="danger" type="button" onClick={handleCancelCreateVehicleInfo}>
+                                                لغو
                                             </Button>
                                         </div>
                                     </Form>
@@ -1719,6 +2099,71 @@ const UserProfile = (props) => {
 
                 </ModalBody>
             </Modal>
+
+            {/* Assign Vehicle Modal ------------------------------------------------------------------*/}
+            <Modal
+                isOpen={state.assignVehicleInfoModal}
+                toggle={assignVehicleInfoToggle}
+                className={props.className}
+                backdrop="static"
+            >
+                <ModalHeader toggle={assignVehicleInfoToggle} className="customFont">
+                </ModalHeader>
+                <ModalBody className="customFont text-center">
+                    <Formik
+                        initialValues={CreateVehicleAssignInitialValue}
+                        validationSchema={CreateVehicleAssignValidationSchema}
+                        onSubmit={handleSubmitAssignVehicleInfo}
+                        validateOnBlur={true}
+                        validateOnMount={true}
+                        enableReinitialize
+                    >
+                        {(formik) => {
+                            ////console.log("Formik props values", formik);
+                            console.log(formik)
+                            return (
+                                <React.Fragment>
+                                    <Form>
+                                        <Row>
+                                            <Col md="10" style={{ marginTop: "-1.9em" }} className="justify-content-md-start">
+                                                <FormikControl
+                                                    control="inputMaskDebounce"
+                                                    mask="09999999999"
+                                                    type="text"
+                                                    name="mobileNoAssign"
+                                                    id="mobileNoAssign"
+                                                    className="ltr"
+                                                    placeholder="شماره موبایل"
+                                                />
+                                            </Col>
+                                            <Col md="2" style={{ marginTop: "-0.5em" }}
+                                                className="d-flex justify-content-md-start"
+                                            >
+                                                <Button color="transparent" type="submit" disabled={!formik.isValid || formik.isSubmitting}>
+                                                    <Check size={24} color="rgb(65,105,225)" />
+                                                </Button>
+                                            </Col>
+                                        </Row>
+                                    </Form>
+                                </React.Fragment>
+                            );
+                        }}
+                    </Formik>
+                    <Row>
+                        <Col md="12" className="rtl">
+                            <Table
+                                //className={antdClass2}
+                                // rowClassName={(record, index) => !record.isAssign ? 'table-row-light' : 'table-row-dark'}
+                                columns={AssignColumns}
+                                dataSource={state.currentVehicleAssignInfo}
+                                pagination={false}
+                            //scroll={{ x: 'max-content', y: 200 }}
+                            />
+                        </Col>
+                    </Row>
+                </ModalBody>
+            </Modal>
+
         </React.Fragment>
     );
 };

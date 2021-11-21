@@ -7,7 +7,7 @@ const MenuList = [
         name: "پروفایل شما", key: "userProfile", url: urls.UserProfile, icon: () => <Home size={18} />, child: []
     },
     {
-        name: "تاریخچه ردیابی", key: "historyTracking", url: urls.MapTracking, icon: () => <MapPin size={18} />, child: []
+        name: "ردیابی", key: "mapTracking", url: urls.MapTracking, icon: () => <MapPin size={18} />, child: []
     },
     {
         name: "امور مالی", key: "finance", url: urls.Finance, icon: () => <DollarSign size={18} />, child: []

@@ -24,20 +24,31 @@ axios.interceptors.response.use(null, error => {
     error.response.status >= 400 &&
     error.response.status < 500;
 
-  //console.log("error", error);
+  console.log("error", error);
   if (!expectedError) {
     // status code 500
-    if (error.response.data.error.message === "Imei exist") {
-      toast.error("تکراری است IMEI کد");
-    }
-    else if (error.response.data.error.message === "Imei not exist or used by another user"){
-      toast.error("قبلا ثبت نشده است IMEI کد")
+
+    if (error && error.response){
+      if (error && error.response && error.response.data.error.message === "Imei exist") {
+        toast.error("تکراری است IMEI کد");
+      }
+      else if (error.response.data.error.message === "Imei not exist or used by another user"){
+        toast.error("قبلا ثبت نشده است IMEI کد")
+      }
+      else if (error.response.data.result === null && !error.response.data.success){
+        toast.error('نتایجی یافت نشد')
+      }
+      else {
+        toast.error("خطا در برقراری ارتباط با سرور. لطفا با ادمین سایت تماس بگیرید");
+      }
+      console.log(error.response , error.response); // eeno bayad log begirim
+      //toastr.error('Server Error','An Unexpected error occured!')
     }
     else {
       toast.error("خطا در برقراری ارتباط با سرور. لطفا با ادمین سایت تماس بگیرید");
     }
-    console.log(error.response, error); // eeno bayad log begirim
-    //toastr.error('Server Error','An Unexpected error occured!')
+
+
   }
 
   if (expectedError) {

@@ -12,9 +12,12 @@ export const GetVehicleDetails = () => {
     return http.get(apiEndpoint + 'GetVehicleDetails');
 }
 
-
 export const GetMyVehicles = () => {
     return http.get(apiEndpoint + 'GetMyVehicles');
+}
+
+export const GetMyAndAssignVehicles = () => {
+    return http.get(apiEndpoint + 'GetMyAndAssignVehicles');
 }
 
 export const GetVehicles = (userId) => {
@@ -117,6 +120,11 @@ export const DisableVehicle = (vehicleId) => {
 
 export const GetCompanyType = () => {
     return http.get(apiEndpoint + 'GetCompanyType');
+}
+
+export const GetVehicleAssignUser = (vehicleId) => {
+    //console.log(vehicleId)
+    return http.get(apiEndpoint + 'GetVehicleAssignUser' + `?Id=${encodeURIComponent(vehicleId)}`);
 }
 
 

@@ -187,7 +187,7 @@ const FirstPage = (props) => {
           xs="12"
           className="d-flex align-items-center justify-content-center"
         >
-          <Card className=" text-center width-400 customBackgroundColor" >
+          <Card className=" text-center width-400" style ={{backgroundColor:  "rgba(218, 225, 230, 0.356)" }} >
             <CardBody>
               <h2 className="white py-4">
                 <ReactRevealText show={show}>

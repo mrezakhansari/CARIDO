@@ -6,8 +6,14 @@
     text-align: center;
   }
   .ant-table-thead > tr > th {
-    height: 4vh;
+    height: 6vh;
     padding: 2px;
     text-align: center !important;
   }
   
+  .table-row-light {
+    background-color: #ffffff;
+}
+.table-row-dark {
+    background-color: #776faa;
+}
