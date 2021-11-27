@@ -428,7 +428,8 @@ class MapTracking extends Component {
                                                         }
                                                         }>
                                                         {/* <Tooltip sticky>sticky Tooltip for Polygon</Tooltip> */}
-                                                        <Popup>{this.state.popUpData}</Popup>
+                                                        <Popup>{this.state.popUpData}
+                                                        </Popup>
                                                     </Polyline>
                                                     {this.state.firstPoint.length > 0 && <Marker position={this.state.firstPoint}>
                                                         <Popup>
