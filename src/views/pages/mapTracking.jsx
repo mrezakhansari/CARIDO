@@ -14,6 +14,8 @@ import HistoryTrackingPNG from '../../assets/icons/LocationConstraint.png';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
+import iconStop from 'leaflet/dist/images/stop-icon.png';
+import iconStopRetina from 'leaflet/dist/images/stop-icon-2x.png';
 import { Row, Col, FormGroup, Button } from 'reactstrap';
 import { DatePicker } from "jalali-react-datepicker";
 import CustomDateTimePicker from '../../components/common/customDateTimePicker';
@@ -25,6 +27,14 @@ let DefaultIcon = Leaflet.icon({
     iconRetinaUrl: iconRetina,
     shadowUrl: iconShadow
 });
+
+let StopIcon = Leaflet.icon({
+    ...Leaflet.Icon.Default.prototype.options,
+    iconUrl: iconStop,
+    iconRetinaUrl: iconStopRetina,
+    shadowUrl: iconShadow
+});
+
 Leaflet.Marker.prototype.options.icon = DefaultIcon;
 
 //let center = [35.728954, 51.388721];
@@ -52,6 +62,7 @@ class MapTracking extends Component {
     state = {
         trackingList: [],
         trackingListInfo: [],
+        stopListInfo: [],
         userVehiclesList: [],
         userVehiclesListForGrid: [],
         showHistoryForm: false,
@@ -216,6 +227,7 @@ class MapTracking extends Component {
         this.setState({
             trackingList: [],
             trackingListInfo: [],
+            stopListInfo: [],
             firstPoint: [],
             lastPoint: [],
             currentVehicle: record,
@@ -266,7 +278,7 @@ class MapTracking extends Component {
             }
             vehicleService.GetVehicleGpsLocationHistory({ from: this.state.selectedDateFrom, to: this.state.selectedDateTo, vehicleId: this.state.currentVehicle.id }).then(response => {
                 let { result, success } = response.data;
-                console.log(result, success)
+                //console.log(result, success)
                 this.setState({ trackingList: [], trackingListInfo: [], firstPoint: [], lastPoint: [] })
                 if (result.length === 0) {
                     return toast.error('در این بازه ی تاریخی مسیری ثبت نشده است')
@@ -277,11 +289,12 @@ class MapTracking extends Component {
                     });
                     const firstPoint = _(tempList).orderBy(c => c.creationTime).head();
                     const lastPoint = _(tempList).orderBy(c => c.creationTime).last();
-                    console.log('GetVehicleGpsLocationHistory', response.data);
+                    //console.log('GetVehicleGpsLocationHistory', response.data);
                     if (tempList.length > 1) {
-                        //const temp = _(tempList).head();
-                        const temp = tempList[tempList.length / 2];
-                        // //console.log(temp);
+                        const temp1 = _(tempList).head();
+                        const index = Math.floor(tempList.length / 2);
+                        const temp = tempList[index];
+                        //console.log(temp,temp1,tempList,tempList.length,index);
                         //center = temp;
                         this.setState({
                             center: temp
@@ -290,6 +303,7 @@ class MapTracking extends Component {
                     this.setState({
                         trackingList: tempList,
                         trackingListInfo: result.gpsLocations,
+                        stopListInfo: result.stop,
                         firstPoint: firstPoint,
                         lastPoint: lastPoint,
                         showMap: true
@@ -388,7 +402,7 @@ class MapTracking extends Component {
 
                         <React.Fragment>
                             {this.state.currentVehicle.id && this.state.showMap &&
-                                <Row className=" mt-1">
+                                <Row className=" mt-2">
                                     <Col md="12" className="mt-2">
                                         <Row>
                                             <Col md="12 mb-2">
@@ -445,7 +459,23 @@ class MapTracking extends Component {
                                                             </div>
                                                         </Popup>
                                                     </Marker>}
-
+                                                    {this.state.stopListInfo.length > 0 &&
+                                                        this.state.stopListInfo.map((item, index) => {
+                                                            return (
+                                                                <Marker
+                                                                    position={[item.lat, item.lon]}
+                                                                    key={`M${index}`}
+                                                                    icon={StopIcon}
+                                                                >
+                                                                    <Popup>
+                                                                        <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                                            <span>Stop</span>
+                                                                        </div>
+                                                                    </Popup>
+                                                                </Marker>
+                                                            )
+                                                        })
+                                                    }
                                                 </MapContainer>
 
                                             </Col>
