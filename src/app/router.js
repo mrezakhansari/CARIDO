@@ -17,7 +17,6 @@ const LazyFirstPage = lazy(() => import("../views/pages/firstPage"));
 const LazyUserProfile = lazy(() => import("../views/pages/userProfile"));
 const LazyHistoryTrackingPage = lazy(() => import("../views/pages/mapTracking"));
 const LazyFinancePage = lazy(() => import("../views/pages/financePage"));
-const LazyOnlineTrackingPage = lazy(() => import("../views/pages/onlineTracking"));
 const LazyLogout = lazy(() => import("../views/pages/logoutPage"));
 
 //#endregion --------------------------------------------------------------------------
@@ -28,7 +27,7 @@ const LazyLoginPage = lazy(() => import("../views/pages/loginPage"));
 const LazyVehicles = lazy(() => import("../views/pages/vehiclesPage"));
 const LazyUsersPage = lazy(() => import("../views/pages/usersPage"));
 const LazyProductsPage = lazy(() => import("../views/pages/productsPage"));
-const LazyDashboardPage = lazy(() => import("../views/pages/dashboardPage"));
+const LazyReportPage = lazy(() => import("../views/pages/reportPage"));
 
 //#endregion --------------------------------------------------------------------------
 
@@ -78,15 +77,6 @@ class Router extends Component {
           />
           <MainLayoutRoutes
             exact
-            path={urls.Admin.Users}
-            render={(matchprops) => (
-              <Suspense fallback={<Spinner />}>
-                <LazyUsersPage {...matchprops} />
-              </Suspense>
-            )}
-          />
-          <MainLayoutRoutes
-            exact
             path={urls.Admin.Vehicles}
             render={(matchprops) => (
               <Suspense fallback={<Spinner />}>
@@ -105,10 +95,10 @@ class Router extends Component {
           />
           <MainLayoutRoutes
             exact
-            path={urls.Admin.Dashboard}
+            path={urls.Admin.Report}
             render={(matchprops) => (
               <Suspense fallback={<Spinner />}>
-                <LazyDashboardPage {...matchprops} />
+                <LazyReportPage {...matchprops} />
               </Suspense>
             )}
           />
@@ -130,15 +120,6 @@ class Router extends Component {
               </Suspense>
             )}
           />
-          {/* <MainLayoutRoutes
-            exact
-            path={urls.OnlineTracking}
-            render={(matchprops) => (
-              <Suspense fallback={<Spinner />}>
-                <LazyOnlineTrackingPage {...matchprops} />
-              </Suspense>
-            )}
-          /> */}
           <MainLayoutRoutes
             exact
             path={urls.Finance}

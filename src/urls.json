@@ -7,8 +7,7 @@
         "Login": "/login"
     },
     "Admin": {
-        "Users": "/admin/users",
-        "Dashboard": "/admin/dashboard",
+        "Report": "/admin/report",
         "Vehicles":"/admin/vehicles",
         "Products":"/admin/products"
     },

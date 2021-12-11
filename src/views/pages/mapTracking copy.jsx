@@ -1,4 +1,4 @@
-import React, { Component, useEffect, useState } from "react";
+import React, { Component } from "react";
 import Leaflet from "leaflet";
 import {
   MapContainer,
@@ -62,20 +62,21 @@ var commandTypeName = {
 const limeOptions = { color: "blue" };
 toast.configure({ bodyClassName: "customFont" });
 
-const MyMarker = props => {
+class MapTracking extends Component {
 
-  const initMarker = ref => {
-    if (ref) {
-      ref.leafletElement.openPopup()
-    }
+  MyComponent = ()=> {
+    const map = useMapEvents({
+      click: (e) => {
+        Leaflet.marker([this.state.latlng.lat, this.state.latlng.lng], { DefaultIcon }).removeFrom(map);
+        const { lat, lng } = e.latlng;
+        Leaflet.marker([lat, lng], { DefaultIcon }).addTo(map);
+        this.setState({ latlng: e.latlng });
+      }
+    });
+    return null;
   }
 
-  return <Marker ref={initMarker} {...props} />
-}
-
-const MapTracking = () => {
-
-  const getStopDateTime = (text) => {
+  getStopDateTime = (text) => {
     if (text) {
       let day = parseInt(text.split(":")[0]);
       let hour = parseInt(text.split(":")[1]);
@@ -91,7 +92,7 @@ const MapTracking = () => {
     return "";
   };
 
-  const getDateTime = (text) => {
+  getDateTime = (text) => {
     if (text) {
       let result = "";
       let temp = _(text).split("-").value();
@@ -109,7 +110,11 @@ const MapTracking = () => {
     return "";
   };
 
-  const [state, setState] = useState({
+  constructor(props) {
+    super(props);
+  }
+
+  state = {
     trackingList: [],
     trackingListInfo: [],
     stopListInfo: [],
@@ -125,18 +130,14 @@ const MapTracking = () => {
     center: [35.728954, 51.388721],
     showMap: false,
     showMapMenu: false,
-    currentPage: 1,
-    latlng: {},
-    showOnlineMap: false,
-    connection: {},
-    onlineInfo: {}
-  });
-  const columns = [
+    currentPage: 1
+  };
+  columns = [
     {
       title: "ردیف",
       key: "row",
       render: (text, record, index) =>
-        (state.currentPage - 1) * 10 + index + 1,
+        (this.state.currentPage - 1) * 10 + index + 1,
       width: "4em",
     },
     {
@@ -172,7 +173,7 @@ const MapTracking = () => {
           <div
             className="btn logo-img mt-1"
             size="sm"
-            onClick={() => handleMapTrackingHistory(record)}
+            onClick={() => this.handleMapTrackingHistory(record)}
           >
             <img src={MapPNG} alt="logo" width="10%" title="Tracking History" />
           </div>
@@ -191,7 +192,7 @@ const MapTracking = () => {
           <div
             className="btn logo-img mt-1"
             size="sm"
-            onClick={() => handleMapTrackingOnline(record)}
+            onClick={() => this.handleMapTrackingCurrent(record)}
           >
             <img
               src={HistoryTrackingPNG}
@@ -206,50 +207,90 @@ const MapTracking = () => {
     },
   ];
 
-  useEffect(() => {
-    if (state.connection && state.connection.start) {
-      state.connection.start().then(res => {
-        console.log('connection started', res)
-      })
+  componentWillUnmount() {
+    try {
+      connection.stop();
+    } catch (error) {
+
     }
+  }
 
-  }, [state.connection])
 
-  useEffect(() => {
+  componentDidMount() {
+
+    // try {
+    //   var bearer = 'Bearer' + localStorage.getItem('token');
+
+    //   //var x = 'Hi Hub';
+    //   const protocol = new signalR.JsonHubProtocol();
+    //   var connection = new signalR.HubConnectionBuilder()
+    //     //.withUrl('http://localhost:52493/hub?token='+bearer,{headers:header} )
+    //     .withUrl('http://194.36.174.164:21022/signalr', { skipNegotiation: true, transport: signalR.HttpTransportType.WebSockets })
+    //     .withHubProtocol(protocol)
+    //     .build();
+
+    //   connection.start()
+    //     //.then( console.log('Connection Started'))
+    //     .then(() => connection.invoke('getmessage', bearer))
+    //     .catch(err => console.log('Error while starting connection: ' + err))
+
+    //   connection.on('getmessage', data => {
+    //     console.log('y', data);
+
+    //   });
+    // }
+
+    // catch (err) {
+    //   throw (err);
+    // }
+
     try {
       const protocol = new signalR.JsonHubProtocol();
       const transport = signalR.HttpTransportType.WebSockets;
-      var enc_auth_token = localStorage.getItem('encTokenKey');
-
+      var bearer = 'Bearer' + localStorage.getItem('token');
       const options = {
         transport,
         logMessageContent: true,
-        logger: signalR.LogLevel.Information,
+        logger: signalR.LogLevel.Trace,
         skipNegotiation: true
       };
 
       var connection = new signalR.HubConnectionBuilder()
-        .withUrl(`http://194.36.174.164:21022/signalr?enc_auth_token=${encodeURIComponent(enc_auth_token)}`, options)
+        .withUrl(`http://194.36.174.164:21022/signalr?token=${bearer}`, options)
         .withHubProtocol(protocol)
         .build();
 
-      setState(preState => {
-        return {
-          ...preState,
-          connection: connection
-        }
-      })
+      connection.start().then(res => console.log('connection started'))
+      //data comes from server
+      connection.on('GetConnectionId', data => {
+        connection.invoke('GetConnectionId');
+        console.log('y', data);
 
-      // connection.start().then(res => {
-      //   console.log('connection started', res)
-      // })
-
-      // connection.on('getNotification', function (notification) {
-      //   console.log(notification)
-      // });
+      });
     } catch (error) {
 
     }
+
+    // connection = new signalR.HubConnectionBuilder()
+    //   .withUrl("http://194.36.174.164:21022/signalr"
+    //     ,
+    //     {
+    //       transport: signalR.HttpTransportType.WebSockets,
+    //       skipNegotiation: true,
+    //       accessTokenFactory: () => localStorage.getItem('token')
+    //     }
+    //   )
+    //   .configureLogging(signalR.LogLevel.Information)
+    //   .build();
+    // connection.start()
+    //   .then(res => {
+    //     //console.log(connection.connectionId)
+    //     //connection.invoke("getmessage", "Hello")
+    //     console.log('connection started');
+    //   })
+    //   .catch(err => {
+    //     console.error((err));
+    //   })
 
     const user = auth.getCurrentUser();
     if (
@@ -262,13 +303,10 @@ const MapTracking = () => {
         .then((response) => {
           if (response.data.success && response.data.result.length > 0) {
             const result = response.data.result;
-            // console.log("getallvehicle", result);
-            setState(preState => {
-              return {
-                ...preState,
-                userVehiclesList: result,
-                userVehiclesListForGrid: createDataModelForDataTabel(result),
-              }
+            console.log("getallvehicle", result);
+            this.setState({
+              userVehiclesList: result,
+              userVehiclesListForGrid: this.createDataModelForDataTabel(result),
             });
           } else {
             return toast.warning("هیچ دستگاهی برای شما ثبت نشده است");
@@ -278,6 +316,22 @@ const MapTracking = () => {
           //
         });
     } else {
+      // vehicleService.GetMyVehicles()
+      //     .then(response => {
+      //         if (response.data.success && response.data.result.length > 0) {
+      //             const result = response.data.result;
+      //             this.setState({
+      //                 userVehiclesList: result, userVehiclesListForGrid: this.createDataModelForDataTabel(result)
+      //             }
+      //             );
+      //         }
+      //         else {
+      //             return toast.warning("هیچ دستگاهی برای شما ثبت نشده است");
+      //         }
+      //     })
+      //     .catch(error => {
+      //         //
+      //     })
       vehicleService
         .GetMyAndAssignVehicles()
         .then((response) => {
@@ -304,13 +358,10 @@ const MapTracking = () => {
               });
             });
             //console.log(vehicles);
-            setState(preState => {
-              return {
-                ...preState,
-                userVehiclesList: vehicles,
-                userVehiclesListForGrid:
-                  createDataModelForDataTabel(vehicles),
-              }
+            this.setState({
+              userVehiclesList: vehicles,
+              userVehiclesListForGrid:
+                this.createDataModelForDataTabel(vehicles),
             });
           } else {
             return toast.warning("هیچ دستگاهی برای شما ثبت نشده است");
@@ -320,132 +371,99 @@ const MapTracking = () => {
           //
         });
     }
-  }, [])
+  }
 
-  const createDataModelForDataTabel = (data) => {
+  createDataModelForDataTabel = (data) => {
     return data.map((item) => {
       return { ...item, key: item.id };
     });
   };
 
-  const handleMapTrackingHistory = (record) => {
-    setState(preState => {
-      return {
-        ...preState,
-        trackingList: [],
-        trackingListInfo: [],
-        stopListInfo: [],
-        firstPoint: [],
-        lastPoint: [],
-        currentVehicle: record,
-        showMap: false,
-        showMapMenu: true,
-      }
+  handleMapTrackingHistory = (record) => {
+    //console.log(record);
+    this.setState({
+      trackingList: [],
+      trackingListInfo: [],
+      stopListInfo: [],
+      firstPoint: [],
+      lastPoint: [],
+      currentVehicle: record,
+      showMap: false,
+      showMapMenu: true,
+    });
+    // this.setState({ showHistoryForm: true, currentVehicle: record });
+  };
+
+  handleMapTrackingCurrent = (record) => {
+
+
+    this.setState({
+      trackingList: [],
+      trackingListInfo: [],
+      stopListInfo: [],
+      firstPoint: [],
+      lastPoint: [],
+      currentVehicle: record,
+      showMap: false,
+      showMapMenu: true,
     });
   };
 
-  const handleMapTrackingOnline = (record) => {
-
-
-    if (state.connection && state.connection.on) {
-      state.connection.on('getNotification', function (ReceivedData) {
-        console.log(ReceivedData);
-        setState(preState => {
-          return {
-            ...preState,
-            onlineInfo: ReceivedData.notification.data.properties,
-            center:[ReceivedData.notification.data.properties.Lat,ReceivedData.notification.data.properties.Lon]
-            // center:[35.728954, 51.388721],
-            // onlineInfo:{
-            //   Title:'asdf',
-            //   Lat:35.728954,
-            //   Lon:51.388721
-            // }
-          }
-        })
-      });
-    }
-
-    setState(preState => {
-      return {
-        ...preState,
-        trackingList: [],
-        trackingListInfo: [],
-        stopListInfo: [],
-        firstPoint: [],
-        lastPoint: [],
-        currentVehicle: record,
-        showMap: false,
-        showMapMenu: false,
-        showOnlineMap: true
-      }
-    });
-  };
-
-  const handleDateFromChange = (value) => {
+  handleDateFromChange = (value) => {
     console.log(value);
     // const date = value.value["_i"].replace("-//", "");
     if (value.length > 10)
-      setState(preState => {
-        return { ...preState, selectedDateFrom: value.replace(" ", "T") + "Z" }
-      });
+      this.setState({ selectedDateFrom: value.replace(" ", "T") + "Z" });
     else {
-      setState(preState => {
-        return {
-          ...preState, selectedDateFrom: value.replace(" ", "") + "T00:00:00Z",
-        }
+      this.setState({
+        selectedDateFrom: value.replace(" ", "") + "T00:00:00Z",
       });
     }
   };
 
-  const handleDateToChange = (value) => {
+  handleDateToChange = (value) => {
+    // console.log(value);
+    // const date = value.value["_i"].replace("-//", "");
     if (value.length > 10)
-      setState(preState => {
-        return { ...preState, selectedDateTo: value.replace(" ", "T") + "Z" }
-      });
+      this.setState({ selectedDateTo: value.replace(" ", "T") + "Z" });
     else {
-      setState(preState => {
-        return { ...preState, selectedDateTo: value.replace(" ", "") + "T23:59:59Z" }
-      });
+      this.setState({ selectedDateTo: value.replace(" ", "") + "T23:59:59Z" });
     }
   };
 
-  const handleGetGPSHistory = () => {
-    if (state.selectedDateFrom === "") {
+  handleGetGPSHistory = () => {
+    if (this.state.selectedDateFrom === "") {
       return toast.error("تاریخ ابتدای بازه را وارد کنید");
     }
-    if (state.selectedDateTo === "") {
+    if (this.state.selectedDateTo === "") {
       return toast.error("تاریخ انتهای بازه را وارد کنید");
     }
     if (
-      state.currentVehicle.id
+      this.state.currentVehicle.id
       // && this.state.showHistoryForm
     ) {
-      const FromDate = new Date(state.selectedDateFrom);
-      const ToDate = new Date(state.selectedDateTo);
+      const FromDate = new Date(this.state.selectedDateFrom);
+      const ToDate = new Date(this.state.selectedDateTo);
       if (FromDate > ToDate) {
         return toast.error("بازه ی تاریخ را درست وارد کنید");
       }
-      if (diffInMonths(ToDate, FromDate) > 2) {
+      if (this.diffInMonths(ToDate, FromDate) > 2) {
         return toast.error("بازه ی تاریخ نمی تواند بیشتر از دوماه باشد");
       }
       vehicleService
         .GetVehicleGpsLocationHistory({
-          from: state.selectedDateFrom,
-          to: state.selectedDateTo,
-          vehicleId: state.currentVehicle.id,
+          from: this.state.selectedDateFrom,
+          to: this.state.selectedDateTo,
+          vehicleId: this.state.currentVehicle.id,
         })
         .then((response) => {
           let { result, success } = response.data;
-          console.log(result, success)
-          setState(preState => {
-            return {
-              ...preState,
-              trackingList: [],
-              trackingListInfo: [],
-              firstPoint: [],
-              lastPoint: [],
-            }
+          //console.log(result, success)
+          this.setState({
+            trackingList: [],
+            trackingListInfo: [],
+            firstPoint: [],
+            lastPoint: [],
           });
           if (result.length === 0) {
             return toast.error("در این بازه ی تاریخی مسیری ثبت نشده است");
@@ -469,114 +487,72 @@ const MapTracking = () => {
               const temp = tempList[index];
               //console.log(temp,temp1,tempList,tempList.length,index);
               //center = temp;
-              setState(preState => {
-                return {
-                  ...preState,
-                  center: temp,
-                }
+              this.setState({
+                center: temp,
               });
             }
-            setState(preState => {
-              return {
-                ...preState,
-                trackingList: tempList,
-                trackingListInfo: result.gpsLocations,
-                stopListInfo: result.stop,
-                firstPoint: firstPoint,
-                lastPoint: lastPoint,
-                showMap: true,
-              }
+            this.setState({
+              trackingList: tempList,
+              trackingListInfo: result.gpsLocations,
+              stopListInfo: result.stop,
+              firstPoint: firstPoint,
+              lastPoint: lastPoint,
+              showMap: true,
             });
           }
+          ////console.log(response);
         })
         .catch((error) => {
+          //console.log(error)
         });
     }
   };
 
-  const diffInMonths = (end, start) => {
+  diffInMonths = (end, start) => {
     var timeDiff = Math.abs(end.getTime() - start.getTime());
     return Math.round(timeDiff / (2e3 * 3600 * 365.25));
   };
 
-  const handleReturnToMainMenu = () => {
-    setState(preState => {
-      return {
-        ...preState,
-        showMap: true,
-        showMapMenu: false,
-        showOnlineMap: false
-      }
+  // handlePopupData = (e) =>
+  //     {
+  //         //console.log('mouse over', e);
+  //         e.target.openPopup();
+  //         this.setState({ popUpData: e.latlng.lat })
+  //     }
+
+  handleReturnToMainMenu = () => {
+    this.setState({
+      showMap: true,
+      showMapMenu: false,
     });
   };
 
-  return (
-    <React.Fragment>
-      {
-        state.showOnlineMap && state.center &&
-        <Row className=" mt-1">
-          <Col md="12" className="mt-2">
-            <MapContainer
-              center={state.center}
-              zoom={13}
-              zoomAnimation={true}
-              markerZoomAnimation={true}
-              style={{ height: "50em" }}
-            >
-              <TileLayer
-                attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
-              />
-              {state.onlineInfo && state.onlineInfo.Lat && state.onlineInfo.Lon &&
-                <Marker position={[state.onlineInfo.Lat, state.onlineInfo.Lon]}>
-                  <Popup>
-                    <div
-                      dir="rtl"
-                      className="customFont"
-                      style={{ textAlign: "right" }}
-                    >
-                      <span>سرعت: </span>
-                      <strong>
-                        {state.onlineInfo.Speed}
-                      </strong>
-                      <br />
-                      <span>خودرو: </span>
-                      <strong>
-                        {state.onlineInfo.Title}
-                      </strong>
-                    </div>
-                  </Popup>
-                </Marker>}
-            </MapContainer>
-          </Col>
-        </Row>
-      }
-      {
-        !state.showOnlineMap && <div className="">
 
-          {!state.showMapMenu && (
+  render() {
+    //console.log(this.state);
+    return (
+      <React.Fragment>
+        <div className="">
+          {!this.state.showMapMenu && (
             <Row className=" justify-content-md-center">
               <Col md="12" className="my-2">
                 <ConfigProvider direction={"rtl"} locale={he_IL}>
                   <Table
                     className={antdClass2}
-                    columns={columns}
-                    dataSource={state.userVehiclesListForGrid}
+                    columns={this.columns}
+                    dataSource={this.state.userVehiclesListForGrid}
                     rowClassName={(record, index) =>
                       !record.isAssign ? "table-row-light" : "table-row-dark"
                     }
                     //pagination={false}
                     //tableLayout="auto"
                     pagination={{
-                      total: state.userVehiclesListForGrid.length,
-                      current: state.currentPagee,
+                      total: this.state.userVehiclesListForGrid.length,
+                      current: this.state.currentPagee,
                       position: ["topLeft"],
                       onChange: (page, pageSize) => {
                         //console.log("current page: ", page);
-                        setState(preState => {
-                          return { ...preState, currentPage: page }
-                        });
+                        this.setState({ currentPage: page });
                       },
                     }}
                     scroll={{ y: "calc(100vh - 250px)", x: "max-content" }}
@@ -586,10 +562,10 @@ const MapTracking = () => {
             </Row>
           )}
 
-          {state.showMapMenu && (
+          {this.state.showMapMenu && (
             <React.Fragment>
               <Row>
-                {state.currentVehicle.id && (
+                {this.state.currentVehicle.id && (
                   <Col
                     md="3"
                     style={{
@@ -601,7 +577,7 @@ const MapTracking = () => {
                     className="d-flex align-items-start justify-content-start"
                   >
                     وسیله انتخاب شده:{" "}
-                    <Tag color="orange">{state.currentVehicle.title}</Tag>
+                    <Tag color="orange">{this.state.currentVehicle.title}</Tag>
                   </Col>
                 )}
                 <Col
@@ -614,7 +590,7 @@ const MapTracking = () => {
                       key="FromDate"
                       datePlaceholder="از تاریخ"
                       timePlaceholder="از ساعت"
-                      onSelectedChanged={handleDateFromChange}
+                      onSelectedChanged={this.handleDateFromChange}
                     />
                   </div>
                 </Col>
@@ -628,7 +604,7 @@ const MapTracking = () => {
                       key="ToDate"
                       datePlaceholder="تا تاریخ"
                       timePlaceholder="تا ساعت"
-                      onSelectedChanged={handleDateToChange}
+                      onSelectedChanged={this.handleDateToChange}
                     />
                   </div>
                 </Col>
@@ -639,13 +615,13 @@ const MapTracking = () => {
                   <Button
                     color="success"
                     className=" ml-1"
-                    onClick={handleGetGPSHistory}
+                    onClick={this.handleGetGPSHistory}
                   >
                     جستجو
                   </Button>
                   <Button
                     className="customBackColor"
-                    onClick={handleReturnToMainMenu}
+                    onClick={this.handleReturnToMainMenu}
                   >
                     بازگشت
                   </Button>
@@ -653,15 +629,15 @@ const MapTracking = () => {
               </Row>
 
               <React.Fragment>
-                {state.currentVehicle.id &&
-                  state.showMap &&
-                  state.trackingList.length > 0 && (
+                {this.state.currentVehicle.id &&
+                  this.state.showMap &&
+                  this.state.trackingList.length > 0 && (
                     <Row className=" mt-2">
                       <Col md="12" className="mt-2">
                         <Row>
                           <Col md="12 mb-2">
                             <MapContainer
-                              center={state.center}
+                              center={this.state.center}
                               zoom={13}
                               style={{ height: "50em" }}
                               zoomAnimation={true}
@@ -674,7 +650,7 @@ const MapTracking = () => {
                               />
                               <Polyline
                                 pathOptions={limeOptions}
-                                positions={state.trackingList}
+                                positions={this.state.trackingList}
                                 eventHandlers={{
                                   click: () => {
                                     //console.log('marker clicked')
@@ -683,7 +659,7 @@ const MapTracking = () => {
                                     const lat = e.latlng.lat.toFixed(2);
                                     const lng = e.latlng.lng.toFixed(2);
                                     //console.log('mouse over', e.latlng, lat, lng);
-                                    const data = _(state.trackingListInfo)
+                                    const data = _(this.state.trackingListInfo)
                                       .filter(
                                         (c) =>
                                           c.lat.toFixed(2) === lat &&
@@ -693,39 +669,36 @@ const MapTracking = () => {
                                     //console.log(data);
                                     if (data !== undefined) {
                                       e.target.openPopup();
-                                      setState(preState => {
-                                        return {
-                                          ...preState,
-                                          popUpData: (
-                                            <div
-                                              dir="rtl"
-                                              className="customFont"
-                                              style={{ textAlign: "right" }}
-                                            >
-                                              <span>سرعت: </span>
-                                              <strong>KM/H {data.speed}</strong>
-                                              <br />
-                                              <span>وضعیت خودرو: </span>
-                                              <strong>
-                                                {
-                                                  commandTypeName[
-                                                  data.commandType
-                                                  ]
-                                                }
-                                              </strong>
-                                            </div>
-                                          ),
-                                        }
+                                      this.setState({
+                                        popUpData: (
+                                          <div
+                                            dir="rtl"
+                                            className="customFont"
+                                            style={{ textAlign: "right" }}
+                                          >
+                                            <span>سرعت: </span>
+                                            <strong>KM/H {data.speed}</strong>
+                                            <br />
+                                            <span>وضعیت خودرو: </span>
+                                            <strong>
+                                              {
+                                                commandTypeName[
+                                                data.commandType
+                                                ]
+                                              }
+                                            </strong>
+                                          </div>
+                                        ),
                                       });
                                     }
                                   },
                                 }}
                               >
                                 {/* <Tooltip sticky>sticky Tooltip for Polygon</Tooltip> */}
-                                <Popup>{state.popUpData}</Popup>
+                                <Popup>{this.state.popUpData}</Popup>
                               </Polyline>
-                              {state.firstPoint.length > 0 && (
-                                <Marker position={state.firstPoint}>
+                              {this.state.firstPoint.length > 0 && (
+                                <Marker position={this.state.firstPoint}>
                                   <Popup>
                                     <div
                                       dir="rtl"
@@ -737,8 +710,8 @@ const MapTracking = () => {
                                   </Popup>
                                 </Marker>
                               )}
-                              {state.lastPoint.length > 0 && (
-                                <Marker position={state.lastPoint}>
+                              {this.state.lastPoint.length > 0 && (
+                                <Marker position={this.state.lastPoint}>
                                   <Popup>
                                     <div
                                       dir="rtl"
@@ -750,8 +723,8 @@ const MapTracking = () => {
                                   </Popup>
                                 </Marker>
                               )}
-                              {state.stopListInfo.length > 0 &&
-                                state.stopListInfo.map((item, index) => {
+                              {this.state.stopListInfo.length > 0 &&
+                                this.state.stopListInfo.map((item, index) => {
                                   return (
                                     <Marker
                                       position={[item.lat, item.lon]}
@@ -766,17 +739,17 @@ const MapTracking = () => {
                                         >
                                           <span>از زمان: </span>
                                           <strong>
-                                            {getDateTime(item.from)}
+                                            {this.getDateTime(item.from)}
                                           </strong>
                                           <br />
                                           <span>تا زمان: </span>
                                           <strong>
-                                            {getDateTime(item.to)}
+                                            {this.getDateTime(item.to)}
                                           </strong>
                                           <br />
                                           <span>به مدت: </span>
                                           <strong>
-                                            {getStopDateTime(item.wait)}
+                                            {this.getStopDateTime(item.wait)}
                                           </strong>
                                         </div>
                                       </Popup>
@@ -789,20 +762,23 @@ const MapTracking = () => {
                       </Col>
                     </Row>
                   )}
-                {!state.showMap && (
+                {!this.state.showMap && (
                   <Row className=" mt-1">
                     <Col md="12" className="mt-2">
                       <MapContainer
-                        center={state.center}
+                        center={this.state.center}
                         zoom={13}
                         zoomAnimation={true}
                         markerZoomAnimation={true}
                         style={{ height: "50em" }}
+                        onclick={this.handleClick}
                       >
                         <TileLayer
                           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
                         />
+                        <MyComponent />
                       </MapContainer>
                     </Col>
                   </Row>
@@ -810,12 +786,10 @@ const MapTracking = () => {
               </React.Fragment>
             </React.Fragment>
           )}
-
         </div>
-      }
-
-    </React.Fragment>
-  );
+      </React.Fragment>
+    );
+  }
 }
 
 export default MapTracking;

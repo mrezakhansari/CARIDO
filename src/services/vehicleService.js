@@ -127,7 +127,24 @@ export const GetVehicleAssignUser = (vehicleId) => {
     return http.get(apiEndpoint + 'GetVehicleAssignUser' + `?Id=${encodeURIComponent(vehicleId)}`);
 }
 
+export const GetVehicleModelReport = () => {
+    return http.get(apiEndpoint + 'GetVehicleModelReport');
+}
 
+export const SwitchOnVehicle = (data) => {
+    return http.post(apiEndpoint + 'SwitchOnVehicle', data);
+}
 
+export const SwitchOffVehicle = (data) => {
+    return http.post(apiEndpoint + 'SwitchOffVehicle', data);
+}
+
+export const EnableVehicleAccAlarm = (vehicleId) => {
+    return http.post(apiEndpoint + 'EnableVehicleAccAlarm', vehicleId);
+}
+
+export const DisableVehicleAccAlarm = (vehicleId) => {
+    return http.post(apiEndpoint + 'DisableVehicleAccAlarm', vehicleId);
+}
 
 

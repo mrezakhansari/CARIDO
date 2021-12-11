@@ -7,24 +7,26 @@ import { apiUrl } from "../config.json";
 
 const apiEndpoint = apiUrl + "/TokenAuth/Authenticate";
 const tokenKey = "token";
+const encTokenKey = "encTokenKey";
 
 
 toast.configure({ bodyClassName: "rtl" });
 
 export async function login(user) {
-  console.log(apiEndpoint,user)
-  const { data,success } = await http.post(apiEndpoint, user);
-  console.log("from authserv", data)
+  //console.log(apiEndpoint,user)
+  const { data, success } = await http.post(apiEndpoint, user);
+  //console.log("from authserv", data)
   if (data.result && data.success) {
     const jwt = data.result.accessToken;
     localStorage.setItem(tokenKey, jwt);
+    localStorage.setItem(encTokenKey,data.result.encryptedAccessToken)
     return { result: true, message: null };
   }
   return { result: false, message: data.error };
 }
 
 export function logout() {
-  console.log('logoutttt')
+  //console.log('logoutttt')
   localStorage.removeItem(tokenKey);
 }
 
@@ -34,9 +36,9 @@ export function getCurrentUser() {
     //   localStorage.getItem("token"),
     //   tokenHashKey
     // ).toString(CryptoJS.enc.Utf8);
-    const jwt =  localStorage.getItem("token");
+    const jwt = localStorage.getItem("token");
     const decToken = jwtDecode(jwt);
-     console.log('decode toke', decToken);
+    console.log('decode toke', decToken);
     if (decToken.exp < Date.now() / 1000) {
       toast.error("Your credential is expired, Please login again");
       logout();

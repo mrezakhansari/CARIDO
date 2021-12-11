@@ -40,7 +40,7 @@ class SideMenuContent extends Component {
 
     else {
       const user = auth.getCurrentUser();
-      // console.log(user);
+       console.log(user);
 
       if (user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] && user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] === "Admin") {
         this.setState({ menuList: menuList, user: user });
@@ -62,7 +62,7 @@ class SideMenuContent extends Component {
 
         let userDoesNotHavePermissions = ["ADMIN"];
 
-        console.log('side menu userDoesNotHavePermissions', userDoesNotHavePermissions)
+      //  console.log('side menu userDoesNotHavePermissions', userDoesNotHavePermissions)
         let result = menuList;
         userDoesNotHavePermissions.forEach((p) => {
           result = filterData(result, p);
@@ -162,7 +162,7 @@ class SideMenuContent extends Component {
             style={{ color: "White", fontSize: 18 }}
             className="mr-3 text-right"
             show={this.state.showUserInfo}
-            text={this.state.user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] + " خوش آمدید"}
+            text={this.state.user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}
           ></ReactRevealText>}
         >
         </SideMenu.MenuMultiItems>

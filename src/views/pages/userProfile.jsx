@@ -1,7 +1,7 @@
 //#region ------------ Imports ----------------------------------------------
 import React, { useEffect, useState } from "react";
 import { Row, Col, Button, FormGroup, Modal, ModalHeader, ModalBody, ModalFooter, UncontrolledTooltip } from 'reactstrap';
-import { Edit2, Trash2, Users, Plus, PlusCircle, Check } from "react-feather";
+import { Edit2, Trash2, Users, Check } from "react-feather";
 import { Planet } from 'react-planet';
 import { toast } from 'react-toastify';
 import { Menu } from 'react-feather';
@@ -21,12 +21,37 @@ import VehicleTurnOnPNG from '../../assets/icons/VehicleTurnOn.png';
 import OpenDoorCarPNG from '../../assets/icons/OpenDoorCar.png';
 import ShockCarPNG from '../../assets/icons/ShockCar.png';
 import StopCarPNG from '../../assets/icons/StopCar.png';
+import VehicleAccAlarmOnPNG from '../../assets/icons/VehicleAccAlarmOn.png';
+import VehicleAccAlarmOffPNG from '../../assets/icons/VehicleAccAlarmOff.png';
 import Select from "react-select";
 import { Formik, Form } from "formik";
 import FormikControl from "../../components/common/formik/FormikControl";
 import * as Yup from 'yup';
 import config from '../../config.json';
 import he_IL from "antd/es/locale/fa_IR";
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
+
+import Leaflet from "leaflet";
+import {
+    MapContainer,
+    TileLayer,
+    Popup,
+    Polyline,
+    Marker, useMapEvents
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+let DefaultIcon = Leaflet.icon({
+    ...Leaflet.Icon.Default.prototype.options,
+    iconUrl: icon,
+    iconRetinaUrl: iconRetina,
+    shadowUrl: iconShadow,
+});
+
+Leaflet.Marker.prototype.options.icon = DefaultIcon;
+
 //#endregion -------------------------------------------------------------------------------
 
 toast.configure({ bodyClassName: "customFont rtl" });
@@ -258,7 +283,9 @@ const UserProfile = (props) => {
         selectedVehicleType: {},
         selectedVehicleSize: {},
 
-        showVehicleMenu: false
+        showVehicleMenu: false,
+        latlng: {},
+        center: [35.728954, 51.388721]
     });
 
     const createDataModelForDataTabel = (data) => {
@@ -387,18 +414,78 @@ const UserProfile = (props) => {
                 showVehicleMenu: true
             };
         });
-        //console.log("menu device managemenet", record);
+        console.log("menu device managemenet", record);
     }
 
-    //#region Vehicle Turn On Enable and Shock Alarm Enable  and Battery Cut Off Enable -------------
+    //#region Vehicle Switch On Off and Shock Alarm Enable and Battery Cut Off Enable and ACC Alarm-------------
 
-    const handleVehicleTurnOnEnable = (vehicleInfo) => {
+    const handleVehicleAccAlarm = (vehicleInfo) => {
         ////console.log(vehicleInfo);
-        if (vehicleInfo.isVehicleTurnOnAlarmEnabled) {
-            vehicleService.DisableVehicleTurnOnAlarm({ id: vehicleInfo.id }).then(response => {
+        if (vehicleInfo.isAccAlarmEnabled) {
+            vehicleService.DisableVehicleAccAlarm({ id: vehicleInfo.id }).then(response => {
                 if (response.data.success && response.data.result) {
                     const data = _.cloneDeep(state.currentVehicle);
-                    data.isVehicleTurnOnAlarmEnabled = false;
+                    data.isAccAlarmEnabled = false;
+
+                    const vehicles = [...state.userVehiclesList];
+                    const index = _(vehicles).findIndex(c => c.id === data.id);
+                    vehicles[index] = { ...vehicles[index] };
+                    vehicles[index] = data;
+
+                    setState(prevState => {
+                        return {
+                            ...prevState,
+                            userVehiclesList: vehicles, userVehiclesListForGrid: createDataModelForDataTabel(vehicles)
+                            , currentVehicle: data
+                        }
+                    });
+                    return toast.success("هشدار دزدگیر وسیله غیر فعال شد")
+                }
+                else {
+                    return toast.error("سیستم قادر به انجام این درخواست نیست");
+                }
+            })
+                .catch(error => {
+                    //console.log(error);
+                })
+        }
+        else {
+            vehicleService.EnableVehicleAccAlarm({ id: vehicleInfo.id, isSendSms: false }).then(response => {
+                if (response.data.success && response.data.result) {
+                    const data = _.cloneDeep(state.currentVehicle);
+                    data.isAccAlarmEnabled = true;
+
+                    const vehicles = [...state.userVehiclesList];
+                    const index = _(vehicles).findIndex(c => c.id === data.id);
+                    vehicles[index] = { ...vehicles[index] };
+                    vehicles[index] = data;
+
+                    setState(prevState => {
+                        return {
+                            ...prevState,
+                            userVehiclesList: vehicles, userVehiclesListForGrid: createDataModelForDataTabel(vehicles)
+                            , currentVehicle: data
+                        }
+                    });
+                    return toast.success("هشدار دزدگیر وسلیه فعال شد")
+                }
+                else {
+                    return toast.error("سیستم قادر به انجام این درخواست نیست");
+                }
+            })
+                .catch(error => {
+                    //console.log(error)
+                })
+        }
+    }
+
+    const handleVehicleSwitchOnOff = (vehicleInfo) => {
+        ////console.log(vehicleInfo);
+        if (vehicleInfo.switchState) {
+            vehicleService.SwitchOffVehicle({ id: vehicleInfo.id, isSendSms: false }).then(response => {
+                if (response.data.success && response.data.result) {
+                    const data = _.cloneDeep(state.currentVehicle);
+                    data.switchState = false;
 
                     const vehicles = [...state.userVehiclesList];
                     const index = _(vehicles).findIndex(c => c.id === data.id);
@@ -423,10 +510,10 @@ const UserProfile = (props) => {
                 })
         }
         else {
-            vehicleService.EnableVehicleTurnOnAlarm({ id: vehicleInfo.id }).then(response => {
+            vehicleService.SwitchOnVehicle({ id: vehicleInfo.id, isSendSms: false }).then(response => {
                 if (response.data.success && response.data.result) {
                     const data = _.cloneDeep(state.currentVehicle);
-                    data.isVehicleTurnOnAlarmEnabled = true;
+                    data.switchState = true;
 
                     const vehicles = [...state.userVehiclesList];
                     const index = _(vehicles).findIndex(c => c.id === data.id);
@@ -910,7 +997,13 @@ const UserProfile = (props) => {
     const handleSubmitOverDistanceEnable = () => {
         if (state.currentVehicle && state.overDistanceStatus) {
             //console.log(state);
-            vehicleService.EnableVehicleOverDistanceAlarm({ id: state.currentVehicle.id, overDistance: state.overDistance })
+            vehicleService.EnableVehicleOverDistanceAlarm({
+                id: state.currentVehicle.id,
+                overDistance: state.overDistance,
+                lat: state.latlng.lat,
+                lon: state.latlng.lng,
+                isSendSms: true
+            })
                 .then(response => {
                     if (response.data.success && response.data.result) {
                         const data = _.cloneDeep(state.currentVehicle);
@@ -1395,6 +1488,35 @@ const UserProfile = (props) => {
         })
     }
 
+    const openPopup = (marker) => {
+        if (marker && marker.leafletElement) {
+            window.setTimeout(() => {
+                marker.leafletElement.openPopup()
+            })
+        }
+    }
+
+    const MyComponent = () => {
+        const map = useMapEvents({
+            click: (e) => {
+                if (state.latlng && state.latlng.lat && state.latlng.lng) {
+
+                    console.log(state.latlng)
+                    // Leaflet.marker([state.latlng.lat, state.latlng.lng], { DefaultIcon }).removeFrom(map);
+                }
+                const { lat, lng } = e.latlng;
+                //Leaflet.marker([lat, lng], { DefaultIcon }).addTo(map);
+                setState(preState => {
+                    return {
+                        ...preState,
+                        latlng: e.latlng
+                    }
+                });
+            }
+        });
+        return null;
+    }
+
     return (
         <React.Fragment>
             <div className="">
@@ -1452,22 +1574,22 @@ const UserProfile = (props) => {
                                     onClick={handleReturnToMainMenu}>بازگشت</button>
                             </Col>
                         </Row>
-                        <Row className="customBackgroundColor justify-content-md-center" style={{marginTop:"15em"}}>
+                        <Row className="customBackgroundColor justify-content-md-center" style={{ marginTop: "15em" }}>
                             <Col md="2"></Col>
-                            <Col md="10" className="d-flex align-items-center justify-content-center" 
+                            <Col md="10" className="d-flex align-items-center justify-content-center"
                             >
                                 <div className="d-flex align-items-center" >
                                     {state.showVehicleMenu && state.currentVehicle.id &&
                                         <Planet
-                                        
-                                        centerContent={
-                                            
-                                            <Tag color="success" style={{ fontWeight: "bold",padding:'10px',borderRadius:"3",fontSize: "2em", textAlign: "center" }}>{state.currentVehicle.title}</Tag>
-                                        }
+
+                                            centerContent={
+
+                                                <Tag color="success" style={{ fontWeight: "bold", padding: '10px', borderRadius: "3", fontSize: "2em", textAlign: "center" }}>{state.currentVehicle.title}</Tag>
+                                            }
                                             hideOrbit={false}
                                             autoClose
                                             open={true}
-                                            orbitRadius={135}
+                                            orbitRadius={139}
                                             bounceOnClose
                                             rotation={0}
                                             // the bounce direction is minimal visible
@@ -1477,6 +1599,24 @@ const UserProfile = (props) => {
                                             tension={400}
                                             friction={30}
                                         >
+
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    borderColor: '#1597E5', textAlign: "center",
+                                                    backgroundColor: state.currentVehicle.isAccAlarmEnabled === true ? '#1597E5' : 'transparent'
+                                                }}
+                                                onClick={() => handleVehicleAccAlarm(state.currentVehicle)}
+                                                id="vehicleAccAlarmButton"
+                                            >
+                                                <div className="logo-img">
+                                                    <img src={state.currentVehicle.isAccAlarmEnabled === true ? VehicleAccAlarmOnPNG : VehicleAccAlarmOffPNG} alt="AccAlarm" width="50wh" />
+                                                </div>
+                                                <UncontrolledTooltip placement="top" target="vehicleAccAlarmButton">
+                                                    Acc Alarm
+                                                </UncontrolledTooltip>
+                                            </button>
+
                                             {/* <Button
                                     // active={state.currentDevice.isOverSpeedEnable == true}
                                     color={state.currentVehicle.isVehicleTurnOnAlarmEnabled === true ? 'info' : 'transparent'}
@@ -1495,16 +1635,16 @@ const UserProfile = (props) => {
                                                 className="btn"
                                                 style={{
                                                     borderColor: '#1597E5', textAlign: "center",
-                                                    backgroundColor: state.currentVehicle.isVehicleTurnOnAlarmEnabled === true ? '#1597E5' : 'transparent'
+                                                    backgroundColor: state.currentVehicle.switchState === true ? '#1597E5' : 'transparent'
                                                 }}
-                                                onClick={() => handleVehicleTurnOnEnable(state.currentVehicle)}
+                                                onClick={() => handleVehicleSwitchOnOff(state.currentVehicle)}
                                                 id="vehicleTurnOnButton"
                                             >
                                                 <div className="logo-img">
                                                     <img src={VehicleTurnOnPNG} alt="VehicleTurnOnPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="top" target="vehicleTurnOnButton">
-                                                    Vehicle Turn ON
+                                                    Vehicle Switch ON/OFF
                                                 </UncontrolledTooltip>
                                             </button>
                                             {/* <Button
@@ -1807,6 +1947,32 @@ const UserProfile = (props) => {
                             />
                         </Col>
                     </Row>
+
+                    <Row className=" mt-1">
+                        <Col md="12" className="mt-2">
+                            <MapContainer
+                                center={state.center}
+                                zoom={13}
+                                zoomAnimation={true}
+                                markerZoomAnimation={true}
+                                style={{ height: "20em" }}
+                            >
+                                <TileLayer
+                                    attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
+                                />
+                                <MyComponent />
+                                {state.latlng && state.latlng.lat && state.latlng.lng &&
+                                    <Marker position={state.latlng} ref={openPopup}>
+                                        <Popup position={state.latlng}>
+                                            Current location: <pre>{JSON.stringify(state.latlng, null, 2)}</pre>
+                                        </Popup>
+                                    </Marker>}
+                            </MapContainer>
+                        </Col>
+                    </Row>
+
                 </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onClick={handleSubmitOverDistanceEnable}>
