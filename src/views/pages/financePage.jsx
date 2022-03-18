@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Row, Col, FormGroup } from 'reactstrap';
+import { Row, Col, FormGroup,Button } from 'reactstrap';
 import { toast } from 'react-toastify';
 import { Table, Tag } from 'antd';
 //import antdClass2 from "../../assets/css/vendors/customAntdTable.css";
@@ -144,14 +144,22 @@ const FinancePage = (props) => {
                 <Row className="customBackgroundColor">
                     <Col md="12" className="mt-2">
                         <FormGroup>
-                            <Row>
+                            <Row >
+                                <Col>
+                                    <Button
+                                        className="customBackColor"
+                                        onClick={handleShowProducts}>لیست محصولات
+                                    </Button>
+                                </Col>
+                            </Row>
+                            {/* <Row>
                                 <Col>
                                     <button className="btn btn-warning rtl"
                                         style={{ direction: 'rtl', float: 'right' }}
                                         type="button"
                                         onClick={handleShowProducts}>لیست محصولات</button>
                                 </Col>
-                            </Row>
+                            </Row> */}
                             <Row>
                                 <Col md="12">
                                     <Table
@@ -180,7 +188,7 @@ const FinancePage = (props) => {
                                                             <hr />
                                                             <span style={{ fontWeight: "1vw", color: "white" }}>
                                                                 مدت زمان: {p.days} روز
-                                                        </span>
+                                                            </span>
                                                             <br />
                                                             <span style={{ fontWeight: "1vw", color: "white" }}>
                                                                 قیمت: {p.price} ریال

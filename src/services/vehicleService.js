@@ -25,9 +25,14 @@ export const GetVehicles = (userId) => {
 }
 
 export const GetVehicleGpsLocationHistory = (data) => {
-    console.log(data);
+    //console.log(data);
     return http.post(apiEndpoint + 'GetVehicleGpsLocationHistory', data);
 }
+
+export const GetLastLocation = (vehicleId) => {
+    return http.get(apiEndpoint + 'GetLastLocation' + `?Id=${vehicleId}`);
+}
+
 
 export const CreateVehicle = (data) => {
     return http.post(apiEndpoint + 'Create', data);
@@ -42,7 +47,7 @@ export const UpdateVehicle = (data) => {
 }
 
 export const DeleteVehicle = (vehicleId) => {
-    console.log(vehicleId)
+    //console.log(vehicleId)
     return http.delete(apiEndpoint + 'Delete' + `?Id=${vehicleId}`);
 }
 

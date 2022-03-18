@@ -26,7 +26,7 @@ const OnlineTrackingPage = () => {
       var DateTo = new Date();
       var DateFrom = new Date(DateTo - 1000 * 60);
 
-      console.log(DateTo.toISOString(), DateFrom.toISOString());
+      //console.log(DateTo.toISOString(), DateFrom.toISOString());
       try {
 
         await timeout(3000);

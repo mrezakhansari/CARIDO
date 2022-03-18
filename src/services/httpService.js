@@ -24,7 +24,7 @@ axios.interceptors.response.use(null, error => {
     error.response.status >= 400 &&
     error.response.status < 500;
 
-  console.log("error", error);
+  //console.log("error", error);
   if (!expectedError) {
     // status code 500
 
@@ -41,7 +41,7 @@ axios.interceptors.response.use(null, error => {
       else {
         toast.error("خطا در برقراری ارتباط با سرور. لطفا با ادمین سایت تماس بگیرید");
       }
-      console.log(error.response , error.response); // eeno bayad log begirim
+      //console.log(error.response , error.response); // eeno bayad log begirim
       //toastr.error('Server Error','An Unexpected error occured!')
     }
     else {

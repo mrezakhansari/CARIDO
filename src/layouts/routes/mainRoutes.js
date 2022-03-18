@@ -1,5 +1,5 @@
 // import external modules
-import React from "react";
+import React, { useEffect } from "react";
 import { Route, Redirect } from "react-router-dom";
 import _ from 'lodash'
 
@@ -9,9 +9,10 @@ import MainLayout from "../mainLayout";
 
 const MainLayoutRoute = ({ location, path, render, ...rest }) => {
 
+
    const doesCurrentUserHaveAuthorization = (permissions) => {
 
-       //console.log('from main route: doesCurrentUserHaveAuthorization', permissions, path);
+      //console.log('from main route: doesCurrentUserHaveAuthorization', permissions, path);
       if (permissions === null || permissions.length === 0)
          return false;
 
@@ -39,9 +40,9 @@ const MainLayoutRoute = ({ location, path, render, ...rest }) => {
       //return (<MainLayout>{render(matchProps)}</MainLayout>);
 
       const user = auth.getCurrentUser();
-      console.log(user);
+      //console.log(user);
       if (user) {
-        return <MainLayout>{render(matchProps)}</MainLayout>
+         return <MainLayout>{render(matchProps)}</MainLayout>
          if (user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"] && user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"] === "Admin") {
             return <MainLayout>{render(matchProps)}</MainLayout>
          }

@@ -3,6 +3,8 @@ import React, { Component } from "react";
 
 import { ChevronRight } from "react-feather";
 import { NavLink } from "react-router-dom";
+import * as signalR from "@aspnet/signalr";
+import { toast } from "react-toastify";
 
 // Styling
 import "../../../../assets/scss/components/sidebar/sidemenu/sidemenu.scss";
@@ -14,13 +16,29 @@ import config from '../../../../config.json';
 import menuList from '../../../../mockData/menuList';
 import _ from 'lodash';
 
+var commandTypeName = {
+  Unknown: "نامعلوم",
+  Tracker: "در حال ارسال موقعیت فعلی",
+  DoorOpen: "درب ماشین باز شده",
+  Shock: "لرزش و تکان خوردن ماشین",
+  AccOn: "ماشین روشن شده",
+  AccOff: "ماشین خاموش شده",
+  Speed: "تخطی از سرعت تعیین شده",
+  Move: "خارج از محدوده ی تعیین شده",
+  PowerOff:"جدا شدن باتری از ماشین",
+  AccAlarm:"هشدار دزدگیر"
+};
+
+
+
 class SideMenuContent extends Component {
   constructor(props) {
     super(props);
     this.state = {
       user: {},
       showUserInfo: false,
-      menuList: []
+      menuList: [],
+      hubConnection: null
     };
   }
 
@@ -28,6 +46,50 @@ class SideMenuContent extends Component {
     setTimeout(() => {
       this.setState({ showUserInfo: true });
     }, 1500);
+
+    const protocol = new signalR.JsonHubProtocol();
+    const transport = signalR.HttpTransportType.WebSockets;
+    var enc_auth_token = localStorage.getItem('encTokenKey');
+
+    const options = {
+      transport,
+      logMessageContent: true,
+      logger: signalR.LogLevel.Information,
+      skipNegotiation: true
+    };
+
+    const hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(`http://212.33.199.12:21021/signalr?enc_auth_token=${encodeURIComponent(enc_auth_token)}`, options)
+      .configureLogging(signalR.LogLevel.Information)
+      .withHubProtocol(protocol)
+      .build();
+
+    this.setState({ hubConnection }, () => {
+      this.state.hubConnection
+        .start()
+        .then((res) => { 
+          //console.log('Connection startedddd!',res)
+         })
+        .catch(err => {}
+          //console.log('Error while establishing connection :(')
+          );
+
+        
+
+      this.state.hubConnection.on('getNotification', function (ReceivedData) {
+      // console.log('ReceivedData main menu',ReceivedData);
+       if (ReceivedData.notification.data.properties.CommandType != "Tracker")
+        toast.warning(commandTypeName[`${ReceivedData.notification.data.properties.CommandType}`]);
+      }
+      );
+    });
+
+  }
+
+  componentWillUnmount() {
+    if (this.state.hubConnection && this.state.hubConnection.off){
+      this.state.hubConnection.off('getNotification');
+    }
   }
 
   componentWillMount() {
@@ -40,7 +102,7 @@ class SideMenuContent extends Component {
 
     else {
       const user = auth.getCurrentUser();
-       console.log(user);
+     // console.log(user);
 
       if (user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] && user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] === "Admin") {
         this.setState({ menuList: menuList, user: user });
@@ -62,7 +124,7 @@ class SideMenuContent extends Component {
 
         let userDoesNotHavePermissions = ["ADMIN"];
 
-      //  console.log('side menu userDoesNotHavePermissions', userDoesNotHavePermissions)
+        //  console.log('side menu userDoesNotHavePermissions', userDoesNotHavePermissions)
         let result = menuList;
         userDoesNotHavePermissions.forEach((p) => {
           result = filterData(result, p);

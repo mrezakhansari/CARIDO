@@ -7,14 +7,15 @@ import { apiUrl } from "../config.json";
 
 const apiEndpoint = apiUrl + "/services/app/Sms";
 const tokenKey = "token";
+const encTokenKey = "encTokenKey";
 
 
 toast.configure({ bodyClassName: "rtl" });
 
 export async function sendVerificationCode(user) {
-    console.log("from authserv", user)
+    //console.log("from authserv", user)
     const { data } = await http.post(apiEndpoint + '/SendVerificationCode', user);
-    console.log("from authserv", data)
+    //console.log("from authserv", data)
     if (data.result && data.success) {
         //     const jwt = data.result.accessToken;
         //     localStorage.setItem(tokenKey, jwt);
@@ -24,20 +25,22 @@ export async function sendVerificationCode(user) {
 }
 
 export async function VerifyCode(code) {
-    console.log("user verify code", code)
+    //console.log("user verify code", code)
     const { data } = await http.post(apiEndpoint + '/VerifyCode', code);
-    console.log("then verify code", data)
+    //console.log("then verify code", data)
     if (data.result && data.success) {
          const jwt = data.result.accessToken;
          localStorage.setItem(tokenKey, jwt);
+         localStorage.setItem(encTokenKey,data.result.encryptedAccessToken)
         return { result: true, message: null };
     }
     return { result: false, message: data.error.message };
 }
 
 export function logout() {
-    console.log('logoutttt')
+    //console.log('logoutttt')
     localStorage.removeItem(tokenKey);
+    localStorage.removeItem(encTokenKey);
 }
 
 export function getCurrentUser() {

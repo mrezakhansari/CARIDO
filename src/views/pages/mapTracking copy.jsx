@@ -225,7 +225,7 @@ class MapTracking extends Component {
     //   const protocol = new signalR.JsonHubProtocol();
     //   var connection = new signalR.HubConnectionBuilder()
     //     //.withUrl('http://localhost:52493/hub?token='+bearer,{headers:header} )
-    //     .withUrl('http://194.36.174.164:21022/signalr', { skipNegotiation: true, transport: signalR.HttpTransportType.WebSockets })
+    //     .withUrl('http://212.33.199.12:21021/signalr', { skipNegotiation: true, transport: signalR.HttpTransportType.WebSockets })
     //     .withHubProtocol(protocol)
     //     .build();
 
@@ -256,7 +256,7 @@ class MapTracking extends Component {
       };
 
       var connection = new signalR.HubConnectionBuilder()
-        .withUrl(`http://194.36.174.164:21022/signalr?token=${bearer}`, options)
+        .withUrl(`http://212.33.199.12:21021/signalr?token=${bearer}`, options)
         .withHubProtocol(protocol)
         .build();
 
@@ -264,7 +264,7 @@ class MapTracking extends Component {
       //data comes from server
       connection.on('GetConnectionId', data => {
         connection.invoke('GetConnectionId');
-        console.log('y', data);
+        //console.log('y', data);
 
       });
     } catch (error) {
@@ -272,7 +272,7 @@ class MapTracking extends Component {
     }
 
     // connection = new signalR.HubConnectionBuilder()
-    //   .withUrl("http://194.36.174.164:21022/signalr"
+    //   .withUrl("http://212.33.199.12:21021/signalr"
     //     ,
     //     {
     //       transport: signalR.HttpTransportType.WebSockets,

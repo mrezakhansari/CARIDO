@@ -9,6 +9,6 @@ export const CreateAssign = (data) => {
 }
 
 export const DeleteAssign = (id) => {
-    console.log(id)
+    //console.log(id)
     return http.delete(apiEndpoint + 'Delete' + `?Id=${id}`);
 }

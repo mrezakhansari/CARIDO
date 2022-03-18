@@ -6,13 +6,15 @@ import DatePicker from "react-modern-calendar-datepicker";
 import { TimePicker } from "antd";
 import moment from "jalali-moment";
 
+import ReactInputMask from 'react-input-mask';
+
 class CustomDateTimePicker extends Component {
 
     constructor(props) {
         super(props);
 
         const { selectedValue } = this.props;
-        console.log("props from ", this.props);
+     //   console.log("props from ", this.props);
         this.state = {
             selectedDate: "",
             selectedTime: "",
@@ -64,16 +66,16 @@ class CustomDateTimePicker extends Component {
             this.props.onSelectedChanged(miladiDate + " " + this.state.selectedTime);
     };
 
-    handleSelectedTimeChanged = (TimeString) => {
-        this.setState({ ...this.state, selectedTime: TimeString });
+    handleSelectedTimeChanged = (event) => {
+        this.setState({ ...this.state, selectedTime: event.target.value });
 
         const miladiDate = this.getMiladiDate(this.state.selectedDate);
         if (this.props.onSelectedChanged)
-            this.props.onSelectedChanged(miladiDate + " " + TimeString);
+            this.props.onSelectedChanged(miladiDate + " " + event.target.value);
     };
 
     render() {
-        const { label, name, datePlaceholder,timePlaceholder } = this.props;
+        const { label, name, datePlaceholder, timePlaceholder } = this.props;
         const minimumDate = {
             year: 1398,
             month: 12,
@@ -89,7 +91,7 @@ class CustomDateTimePicker extends Component {
                 {label !== null && label !== "" && <Label for={name}>{label}</Label>}
 
                 <Row>
-                    <Col md="6" sm="6" style={{ paddingLeft: "1px"  }}>
+                    <Col md="6" sm="6" style={{ paddingLeft: "1px" }}>
                         <DatePicker
                             minimumDate={minimumDate}
                             maximumDate={maximumDate}
@@ -105,11 +107,21 @@ class CustomDateTimePicker extends Component {
                             locale="fa"
                             inputClassName="customSize"
                             inputPlaceholder={datePlaceholder}
-                            
+
                         />
                     </Col>
                     <Col md="6" sm="6" style={{ padding: "1px 6px 1px 1px" }}>
-                        <TimePicker
+                    <ReactInputMask
+                      type="text"
+                      mask="99:99"
+                     // id={name}
+                      disabled={!this.state.selectedDate}
+                     // onBlur={() => form.setFieldTouched(name, true)}
+                      onChange={(event) => this.handleSelectedTimeChanged(event)}
+                      placeholder="00:00"
+                      className='form-control'
+                    />
+                        {/* <TimePicker
                             disabled={!this.state.selectedDate}
                             value={
                                 this.state.selectedTime
@@ -122,7 +134,7 @@ class CustomDateTimePicker extends Component {
                             onChange={(time, TimeString) =>
                                 this.handleSelectedTimeChanged(TimeString)
                             }
-                        />
+                        /> */}
                     </Col>
                 </Row>
 

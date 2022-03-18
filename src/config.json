@@ -1,7 +1,7 @@
 {
-    "apiUrls": "http://194.36.174.164:21022/api",
-    "apiUrl": "http://194.36.174.164:21022/api", 
+    "apiUrls": "http://212.33.199.12:21021/api",
+    "apiUrl": "http://212.33.199.12:21021/api", 
     "tokenHashKey": "8c10%$#f9be0b053082",
     "useAuthentication": true,
-    "socketAddress":"http://194.36.174.164:21022/signalr"
+    "socketAddress":"http://212.33.199.12:21021/signalr"
 }

@@ -28,6 +28,7 @@ export async function login(user) {
 export function logout() {
   //console.log('logoutttt')
   localStorage.removeItem(tokenKey);
+  localStorage.removeItem(encTokenKey);
 }
 
 export function getCurrentUser() {
@@ -38,7 +39,7 @@ export function getCurrentUser() {
     // ).toString(CryptoJS.enc.Utf8);
     const jwt = localStorage.getItem("token");
     const decToken = jwtDecode(jwt);
-    console.log('decode toke', decToken);
+    //console.log('decode toke', decToken);
     if (decToken.exp < Date.now() / 1000) {
       toast.error("Your credential is expired, Please login again");
       logout();

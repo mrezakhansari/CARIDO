@@ -18,7 +18,7 @@ class CustomButtonGroup extends Component {
             temp.splice(index, 1);
         }
         this.setState({ cSelected: [...temp] });
-        console.log('this.props.onSelectedChanged',this.props)
+        //console.log('this.props.onSelectedChanged',this.props)
         if (this.props.onSelectedChanged) this.props.onSelectedChanged(temp);
         form.setFieldValue(this.props.name, temp);
     };

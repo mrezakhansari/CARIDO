@@ -1,11 +1,12 @@
-import React, { Component, useEffect, useState } from "react";
+import React, { Component, useEffect, useState, useRef } from "react";
 import Leaflet from "leaflet";
 import {
-  MapContainer,
+  Map as MapContainer,
+  //MapContainer,
   TileLayer,
   Popup,
   Polyline,
-  Marker, useMapEvents
+  Marker
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import _ from "lodash";
@@ -20,14 +21,18 @@ import HistoryTrackingPNG from "../../assets/icons/LocationConstraint.png";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
-import iconStop from "leaflet/dist/images/stop-icon.png";
-import iconStopRetina from "leaflet/dist/images/stop-icon-2x.png";
+import iconStop from "../../assets/img/stop-icon.png";
+import iconStopRetina from "../../assets/img/stop-icon-2x.png";
+import iconGps from "../../assets/img/gps-icon.png";
+import iconGpsRetina from "../../assets/img/gps-icon-2x.png";
 import { Row, Col, FormGroup, Button } from "reactstrap";
 import { DatePicker } from "jalali-react-datepicker";
 import CustomDateTimePicker from "../../components/common/customDateTimePicker";
 import he_IL from "antd/es/locale/fa_IR";
 import config from '../../config.json';
 import * as signalR from '@aspnet/signalr';
+import RotatedMarker from '../../components/common/RotatedMarker';
+
 
 var connection;
 let DefaultIcon = Leaflet.icon({
@@ -44,6 +49,16 @@ let StopIcon = Leaflet.icon({
   shadowUrl: iconShadow,
 });
 
+let GpsIcon = Leaflet.icon({
+  ...Leaflet.Icon.Default.prototype.options,
+  iconUrl: iconGps,
+  iconRetinaUrl: iconGpsRetina,
+  shadowUrl: iconShadow,
+  shadowSize: [0, 0],
+  iconSize: [20, 20],
+  iconAnchor: [0, 0]
+});
+
 Leaflet.Marker.prototype.options.icon = DefaultIcon;
 
 //let center = [35.728954, 51.388721];
@@ -56,6 +71,8 @@ var commandTypeName = {
   5: "ماشین خاموش شده",
   6: "تخطی از سرعت تعیین شده",
   7: "خارج از محدوده ی تعیین شده",
+  8: "جدا شدن باتری از ماشین",
+  9: "هشدار دزدگیر"
 };
 
 
@@ -75,6 +92,30 @@ const MyMarker = props => {
 
 const MapTracking = () => {
 
+  const bearingBetweenLocations = (latLng1, latLng2) => {
+
+    let PI = 3.14159;
+    let lat1 = latLng1.lat * PI / 180;
+    let long1 = latLng1.lon * PI / 180;
+    let lat2 = latLng2.lat * PI / 180;
+    let long2 = latLng2.lon * PI / 180;
+
+
+    let dLon = (long2 - long1);
+
+    let y = Math.sin(dLon) * Math.cos(lat2);
+    let x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1)
+      * Math.cos(lat2) * Math.cos(dLon);
+
+    let brng = Math.atan2(y, x);
+
+    brng = brng * 180 / PI
+    //console.log('asdf')
+    brng = (brng + 360) % 360;
+
+    return brng;
+  }
+
   const getStopDateTime = (text) => {
     if (text) {
       let day = parseInt(text.split(":")[0]);
@@ -82,10 +123,14 @@ const MapTracking = () => {
       let minute = parseInt(text.split(":")[2]);
       let second = parseInt(text.split(":")[3]);
 
-      let s = day > 0 ? ` ${day} روز و  ` : "";
-      s += hour > 0 ? ` ${hour} ساعت و  ` : "";
-      s += minute ? ` ${minute} دقیقه و  ` : "";
-      s += second ? ` ${second} ثانیه` : "";
+      let s = day > 0 ? ` ${day} روز  ` : "";
+      s += hour > 0 && day > 0 ? `و` : ``
+      s += hour > 0 ? ` ${hour} ساعت  ` : "";
+      s += minute > 0 && hour > 0 ? `و` : ``
+      s += minute > 0 ? ` ${minute} دقیقه  ` : "";
+      s += minute > 0 && second > 0 ? `و` : ``
+      s += second > 0 ? ` ${second} ثانیه` : "";
+      console.log(s, day, hour, minute, second)
       return s;
     }
     return "";
@@ -125,11 +170,13 @@ const MapTracking = () => {
     center: [35.728954, 51.388721],
     showMap: false,
     showMapMenu: false,
+    toggle: false,
     currentPage: 1,
     latlng: {},
     showOnlineMap: false,
     connection: {},
-    onlineInfo: {}
+    onlineInfo: {},
+    gpsNav: []
   });
   const columns = [
     {
@@ -206,50 +253,64 @@ const MapTracking = () => {
     },
   ];
 
+  // useEffect(() => {
+  //   if (state.connection && state.connection.start) {
+  //     state.connection.start().then(res => {
+  //     //  console.log('Connection started', res)
+  //     }).catch(error => {
+  //       //  console.log('can not connection start');
+  //     })
+  //   }
+
+  // }, [state.connection])
+
   useEffect(() => {
-    if (state.connection && state.connection.start) {
-      state.connection.start().then(res => {
-        console.log('connection started', res)
-      })
-    }
+    // try {
+    //   const protocol = new signalR.JsonHubProtocol();
+    //   const transport = signalR.HttpTransportType.WebSockets;
+    //   var enc_auth_token = localStorage.getItem('encTokenKey');
 
-  }, [state.connection])
+    //   const options = {
+    //     transport,
+    //     logMessageContent: true,
+    //     logger: signalR.LogLevel.Information,
+    //     skipNegotiation: true
+    //   };
 
-  useEffect(() => {
-    try {
-      const protocol = new signalR.JsonHubProtocol();
-      const transport = signalR.HttpTransportType.WebSockets;
-      var enc_auth_token = localStorage.getItem('encTokenKey');
+    //   connection = new signalR.HubConnectionBuilder()
+    //     .withUrl(`http://212.33.199.12:21021/signalr?enc_auth_token=${encodeURIComponent(enc_auth_token)}`, options)
+    //     .configureLogging(signalR.LogLevel.Information)
+    //     .withHubProtocol(protocol)
+    //     .build();
 
-      const options = {
-        transport,
-        logMessageContent: true,
-        logger: signalR.LogLevel.Information,
-        skipNegotiation: true
-      };
+    //   //   console.log('connection', connection);
+    //   setState(preState => {
+    //     return {
+    //       ...preState,
+    //       connection: { ...connection }
+    //     }
+    //   })
 
-      var connection = new signalR.HubConnectionBuilder()
-        .withUrl(`http://194.36.174.164:21022/signalr?enc_auth_token=${encodeURIComponent(enc_auth_token)}`, options)
-        .withHubProtocol(protocol)
-        .build();
+    //   connection.start().then(res => {
+    //     console.log('connection started', res)
+    //   })
 
-      setState(preState => {
-        return {
-          ...preState,
-          connection: connection
-        }
-      })
+    //   connection.on('getNotification', (ReceivedData) => {
+    //     console.log(ReceivedData);
+    //     setState(preState => {
+    //       return {
+    //         ...preState,
+    //         onlineInfo: ReceivedData.notification.data.properties,
+    //         center: [ReceivedData.notification.data.properties.Lat, ReceivedData.notification.data.properties.Lon],
+    //         toggle: !preState.toggle
+    //       }
+    //     });
+    //   })
 
-      // connection.start().then(res => {
-      //   console.log('connection started', res)
-      // })
 
-      // connection.on('getNotification', function (notification) {
-      //   console.log(notification)
-      // });
-    } catch (error) {
-
-    }
+    // } catch (error) {
+    //   //console.log('error', error)
+    // }
 
     const user = auth.getCurrentUser();
     if (
@@ -320,7 +381,13 @@ const MapTracking = () => {
           //
         });
     }
-  }, [])
+    // return () => {
+    //   if (connection && connection.off) {
+    //     console.log('disconnecterd')
+    //     connection.off('getNotification')
+    //   }
+    // }
+  }, []);
 
   const createDataModelForDataTabel = (data) => {
     return data.map((item) => {
@@ -344,27 +411,7 @@ const MapTracking = () => {
     });
   };
 
-  const handleMapTrackingOnline = (record) => {
-
-
-    if (state.connection && state.connection.on) {
-      state.connection.on('getNotification', function (ReceivedData) {
-        console.log(ReceivedData);
-        setState(preState => {
-          return {
-            ...preState,
-            onlineInfo: ReceivedData.notification.data.properties,
-            center:[ReceivedData.notification.data.properties.Lat,ReceivedData.notification.data.properties.Lon]
-            // center:[35.728954, 51.388721],
-            // onlineInfo:{
-            //   Title:'asdf',
-            //   Lat:35.728954,
-            //   Lon:51.388721
-            // }
-          }
-        })
-      });
-    }
+  const handleMapTrackingOnline = async (record) => {
 
     setState(preState => {
       return {
@@ -376,14 +423,49 @@ const MapTracking = () => {
         lastPoint: [],
         currentVehicle: record,
         showMap: false,
-        showMapMenu: false,
-        showOnlineMap: true
+        showMapMenu: true,
+        showOnlineMap: false,
+        center: [35.728954, 51.388721],
+        toggle: !preState.toggle
       }
     });
+
+    try {
+      const { data } = await vehicleService.GetLastLocation(record.id);
+      //console.log(record, data)
+      if (data.result && data.success) {
+        // console.log(data.result);
+        setState(preState => {
+          return {
+            ...preState,
+            trackingList: [],
+            trackingListInfo: [],
+            stopListInfo: [],
+            firstPoint: [],
+            lastPoint: [],
+            currentVehicle: record,
+            showMap: false,
+            showMapMenu: false,
+            showOnlineMap: true,
+            toggle: !preState.toggle,
+            center: [data.result.lat, data.result.lon],
+            onlineInfo: {
+              Lat: data.result.lat,
+              Lon: data.result.lon,
+              Speed: data.result.speed,
+              Title: record.title
+            }
+          }
+        });
+      }
+    } catch (error) {
+      //console.log(error)
+    }
+
   };
 
   const handleDateFromChange = (value) => {
-    console.log(value);
+    //console.log(value);
     // const date = value.value["_i"].replace("-//", "");
     if (value.length > 10)
       setState(preState => {
@@ -399,6 +481,7 @@ const MapTracking = () => {
   };
 
   const handleDateToChange = (value) => {
+    //console.log(value);
     if (value.length > 10)
       setState(preState => {
         return { ...preState, selectedDateTo: value.replace(" ", "T") + "Z" }
@@ -429,6 +512,7 @@ const MapTracking = () => {
       if (diffInMonths(ToDate, FromDate) > 2) {
         return toast.error("بازه ی تاریخ نمی تواند بیشتر از دوماه باشد");
       }
+      //console.log(state)
       vehicleService
         .GetVehicleGpsLocationHistory({
           from: state.selectedDateFrom,
@@ -437,7 +521,7 @@ const MapTracking = () => {
         })
         .then((response) => {
           let { result, success } = response.data;
-          console.log(result, success)
+          //console.log(result, success)
           setState(preState => {
             return {
               ...preState,
@@ -447,10 +531,12 @@ const MapTracking = () => {
               lastPoint: [],
             }
           });
-          if (result.length === 0) {
-            return toast.error("در این بازه ی تاریخی مسیری ثبت نشده است");
-          }
+
           if (success) {
+
+            if (result.gpsLocations.length === 0) {
+              return toast.error("در این بازه ی زمانی مسیری ثبت نشده است");
+            }
             const tempList = result.gpsLocations
               .filter((f) => f.lat !== 0 && f.lon !== 0)
               .map((c) => {
@@ -476,6 +562,27 @@ const MapTracking = () => {
                 }
               });
             }
+
+            ///////////////////////////////////////////////////////////////
+            let gpsNav = [];
+            let lastIndex = 0;
+            //console.log(gpsNav, tempList)
+            for (let i = 0; i < tempList.length; i++) {
+              if (i === 0) {
+                gpsNav.push({ lat: tempList[i][0], lon: tempList[i][1], deg: 0 });
+              }
+              else if (i % 5 === 0) {
+                let bre = bearingBetweenLocations({ lat: tempList[lastIndex][0], lon: tempList[lastIndex][1] },
+                  { lat: tempList[i][0], lon: tempList[i][1] });
+                gpsNav.push({ lat: tempList[i][0], lon: tempList[i][1], deg: bre });
+                lastIndex = i;
+              }
+            }
+
+
+
+            //console.log(gpsNav)
+
             setState(preState => {
               return {
                 ...preState,
@@ -485,9 +592,11 @@ const MapTracking = () => {
                 firstPoint: firstPoint,
                 lastPoint: lastPoint,
                 showMap: true,
+                gpsNav: gpsNav
               }
             });
           }
+
         })
         .catch((error) => {
         });
@@ -511,17 +620,72 @@ const MapTracking = () => {
   };
 
   return (
+
     <React.Fragment>
+
       {
         state.showOnlineMap && state.center &&
+        <React.Fragment>
+          <Row >
+            <Col>
+              <Button
+                className="customBackColor"
+                onClick={handleReturnToMainMenu}
+              >
+                بازگشت
+              </Button>
+            </Col>
+          </Row>
+          <Row className=" mt-1">
+            <Col md="12" className="mt-2">
+              <MapContainer
+                center={state.center}
+                zoom={13}
+                zoomAnimation={true}
+                markerZoomAnimation={true}
+                //style={{ height: "45em" }}
+                className="leaflet-container"
+              >
+                <TileLayer
+                  attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {state.onlineInfo && state.onlineInfo.Lat && state.onlineInfo.Lon &&
+                  <Marker position={[state.onlineInfo.Lat, state.onlineInfo.Lon]}>
+                    <Popup>
+                      <div
+                        dir="rtl"
+                        className="customFont"
+                        style={{ textAlign: "right" }}
+                      >
+                        <span>سرعت: </span>
+                        <strong>
+                          {state.onlineInfo.Speed}
+                        </strong>
+                        <br />
+                        <span>خودرو: </span>
+                        <strong>
+                          {state.onlineInfo.Title}
+                        </strong>
+                      </div>
+                    </Popup>
+                  </Marker>}
+              </MapContainer>
+            </Col>
+          </Row>
+        </React.Fragment>
+
+      }
+      {/* {
+        state.showOnlineMap && state.center && !state.toggle &&
         <Row className=" mt-1">
           <Col md="12" className="mt-2">
             <MapContainer
               center={state.center}
               zoom={13}
-              zoomAnimation={true}
-              markerZoomAnimation={true}
-              style={{ height: "50em" }}
+              //zoomAnimation={true}
+             // markerZoomAnimation={true}
+              style={{ height: "50em"}}
             >
               <TileLayer
                 attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
@@ -551,7 +715,7 @@ const MapTracking = () => {
             </MapContainer>
           </Col>
         </Row>
-      }
+      } */}
       {
         !state.showOnlineMap && <div className="">
 
@@ -588,7 +752,7 @@ const MapTracking = () => {
 
           {state.showMapMenu && (
             <React.Fragment>
-              <Row>
+              <Row className="mb-2">
                 {state.currentVehicle.id && (
                   <Col
                     md="3"
@@ -663,9 +827,10 @@ const MapTracking = () => {
                             <MapContainer
                               center={state.center}
                               zoom={13}
-                              style={{ height: "50em" }}
                               zoomAnimation={true}
                               markerZoomAnimation={true}
+                              //style={{ height: "45em" }}
+                              className="leaflet-container"
                             >
                               <TileLayer
                                 attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
@@ -725,7 +890,7 @@ const MapTracking = () => {
                                 <Popup>{state.popUpData}</Popup>
                               </Polyline>
                               {state.firstPoint.length > 0 && (
-                                <Marker position={state.firstPoint}>
+                                <Marker position={state.firstPoint} >
                                   <Popup>
                                     <div
                                       dir="rtl"
@@ -783,6 +948,25 @@ const MapTracking = () => {
                                     </Marker>
                                   );
                                 })}
+
+                              {state.gpsNav.length > 0 &&
+                                state.gpsNav.map((item, index) => {
+                                  return (
+                                    // <Marker
+                                    //   position={[item.lat, item.lon]}
+                                    //   key={`M${index}`}
+                                    //   icon={GpsIcon}
+                                    // >
+                                    // </Marker>
+                                    <RotatedMarker
+                                      key={`M${index}`}
+                                      position={[item.lat, item.lon]}
+                                      icon={GpsIcon}
+                                      rotationAngle={item.deg}
+                                      rotationOrigin="center"
+                                    />
+                                  );
+                                })}
                             </MapContainer>
                           </Col>
                         </Row>
@@ -795,9 +979,8 @@ const MapTracking = () => {
                       <MapContainer
                         center={state.center}
                         zoom={13}
-                        zoomAnimation={true}
-                        markerZoomAnimation={true}
-                        style={{ height: "50em" }}
+                        //style={{ height: "45em" }}
+                        className="leaflet-container"
                       >
                         <TileLayer
                           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'

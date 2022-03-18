@@ -1,19 +1,20 @@
 import React, { Component } from "react";
-import {  Label, Row, Col, FormGroup } from "reactstrap";
+import { Label, Row, Col, FormGroup } from "reactstrap";
 import { Field, ErrorMessage } from "formik";
 import _ from "lodash";
 import DatePicker from "react-modern-calendar-datepicker";
 import { TimePicker } from "antd";
 import moment from "jalali-moment";
 import TextError from "./TextError";
+import ReactInputMask from 'react-input-mask';
 
 class CustomDateTimePicker extends Component {
-  
+
   constructor(props) {
     super(props);
 
     const { selectedValue } = this.props;
-    console.log("props from ", this.props);
+    //console.log("props from ", this.props);
     this.state = {
       selectedDate: "",
       selectedTime: "",
@@ -70,14 +71,14 @@ class CustomDateTimePicker extends Component {
     );
   };
 
-  handleSelectedTimeChanged = (TimeString, form) => {
-    this.setState({ ...this.state, selectedTime: TimeString });
+  handleSelectedTimeChanged = (event, form) => {
+    this.setState({ ...this.state, selectedTime: event.target.value });
 
     const miladiDate = this.getMiladiDate(this.state.selectedDate);
     if (this.props.onSelectedChanged)
-      this.props.onSelectedChanged(miladiDate + " " + TimeString);
+      this.props.onSelectedChanged(miladiDate + " " + event.target.value);
 
-    form.setFieldValue(this.props.name, miladiDate + " " + TimeString);
+    form.setFieldValue(this.props.name, miladiDate + " " + event.target.value);
   };
 
   render() {
@@ -104,9 +105,9 @@ class CustomDateTimePicker extends Component {
                 <Row>
                   <Col md="6" sm="6" style={{ paddingRight: "1px" }}>
                     <DatePicker
-                    minimumDate={minimumDate}
-                    maximumDate = {maximumDate}
-                    shouldHighlightWeekends
+                      minimumDate={minimumDate}
+                      maximumDate={maximumDate}
+                      shouldHighlightWeekends
                       wrapperClassName="form-control"
                       value={this.state.selectedDate}
                       onChange={(value) =>
@@ -122,7 +123,19 @@ class CustomDateTimePicker extends Component {
                     />
                   </Col>
                   <Col md="6" sm="6" style={{ padding: "1px 15px 1px 1px" }}>
-                    <TimePicker
+                    <ReactInputMask
+                      type="text"
+                      mask="99:99"
+                      id={name}
+                      onBlur={() => form.setFieldTouched(name, true)}
+                      onChange={(event) => this.handleSelectedTimeChanged(event, form)}
+                      placeholder="00:00"
+                      className='form-control'
+                    />
+                    {/* {meta.touched && (meta.error) ? (
+                      <div className="error">{meta.error}</div>
+                    ) : null} */}
+                    {/* <TimePicker
                       disabled={!this.state.selectedDate}
                       value={
                         this.state.selectedTime
@@ -135,7 +148,7 @@ class CustomDateTimePicker extends Component {
                         this.handleSelectedTimeChanged(TimeString, form)
                       }
                       onBlur={() => form.setFieldTouched(name, true)}
-                    />
+                    /> */}
                   </Col>
                 </Row>
                 <ErrorMessage name={name} component={TextError} />

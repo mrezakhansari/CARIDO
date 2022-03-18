@@ -166,8 +166,8 @@ const CustomPlate = (props) => {
         }
     }
     const handleChangeSecondPartPlateNo = (e, form) => {
-        console.log(
-        _(alphabetList).find(c=>c.value === e.target.value));
+        // console.log(
+        // _(alphabetList).find(c=>c.value === e.target.value));
         const temp = _(alphabetList).find(c=>c.value === e.target.value);
         setState(preState => {
             return {
@@ -218,7 +218,7 @@ const CustomPlate = (props) => {
                             {(fieldProps) => {
                                 const { form, meta } = fieldProps;
                                 //console.log("Render props", props);
-                                console.log(state)
+                                //console.log(state)
                                 return (
                                     <React.Fragment>
                                         <table style={{ width: "100%", position: "absolute" }}>

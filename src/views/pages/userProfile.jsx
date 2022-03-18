@@ -34,14 +34,15 @@ import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
 
 import Leaflet from "leaflet";
-import {
-    MapContainer,
-    TileLayer,
-    Popup,
-    Polyline,
-    Marker, useMapEvents
-} from "react-leaflet";
+// import {
+//     Map as MapContainer,
+//     //MapContainer,
+//     TileLayer,
+//     Popup,
+//     Marker,useLeaflet
+// } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { Map, TileLayer, Popup, Marker, withLeaflet } from "react-leaflet";
 
 let DefaultIcon = Leaflet.icon({
     ...Leaflet.Icon.Default.prototype.options,
@@ -52,13 +53,38 @@ let DefaultIcon = Leaflet.icon({
 
 Leaflet.Marker.prototype.options.icon = DefaultIcon;
 
+
+const MyMarker = props => {
+
+    const initMarker = ref => {
+        if (ref) {
+            ref.leafletElement.openPopup()
+        }
+    }
+
+    return <Marker ref={initMarker} {...props} />
+}
+
 //#endregion -------------------------------------------------------------------------------
 
 toast.configure({ bodyClassName: "customFont rtl" });
 
 const UserProfile = (props) => {
 
+    const [currentPos, setCurrentPos] = useState(null);
+
     const [currentPage, setPage] = React.useState(1);
+
+    const handleClick = e => {
+        //console.log('dd', e.latlng)
+        setCurrentPos(e.latlng);
+        setState(preState => {
+            return {
+                ...preState,
+                latlng: e.latlng
+            }
+        });
+    }
 
     //#region Variables and Initial Functions -----------------------------------------
 
@@ -144,7 +170,7 @@ const UserProfile = (props) => {
             //    .required("شماره پلاک را وارد کنید !")
             .test("validPlateNo", "شماره پلاک را وارد کنید", (value) => {
                 if (state.selectedVehicleType && state.selectedVehicleType.value === 1) {
-                    console.log("validPlateNo", value)
+                    //console.log("validPlateNo", value)
                     if (value &&
                         (value.firstPart !== '' && value.firstPart !== undefined && value.firstPart.length === 2) &&
                         (value.secondPart !== '' && value.secondPart !== undefined && value.secondPart.length === 1) &&
@@ -299,7 +325,7 @@ const UserProfile = (props) => {
         vehicleService.GetCompanyType()
             .then(res1 => {
                 if (res1.data.success && res1.data.result.length > 0) {
-                    console.log(res1)
+                    //   console.log(res1)
                     setState(prevState => {
                         return {
                             ...prevState,
@@ -363,7 +389,7 @@ const UserProfile = (props) => {
             //     })
             vehicleService.GetMyAndAssignVehicles()
                 .then(response => {
-                    console.log('result my and assign vehicles', response)
+                    //  console.log('result my and assign vehicles', response)
                     if (response.data.success && (
                         (response.data.result.myVehicles && response.data.result.myVehicles.length > 0) ||
                         (response.data.result.assignVehicles && response.data.result.assignVehicles.length > 0))) {
@@ -381,7 +407,7 @@ const UserProfile = (props) => {
                                 isAssign: true
                             })
                         })
-                        console.log(vehicles)
+                        //  console.log(vehicles)
                         setState(prevState => {
                             return {
                                 ...prevState,
@@ -397,6 +423,10 @@ const UserProfile = (props) => {
                     //
                 })
         }
+        return () => {
+            setState({});
+        }
+
     }, [])
 
     //#endregion ---------------------------------------------------------
@@ -414,7 +444,7 @@ const UserProfile = (props) => {
                 showVehicleMenu: true
             };
         });
-        console.log("menu device managemenet", record);
+        //  console.log("menu device managemenet", record);
     }
 
     //#region Vehicle Switch On Off and Shock Alarm Enable and Battery Cut Off Enable and ACC Alarm-------------
@@ -1155,7 +1185,7 @@ const UserProfile = (props) => {
     const handleSubmitEditVehicleInfo = () => {
         if (state.currentVehicle) {
             //console.log(_.pick(state.currentVehicle, ["title", "phoneNumber", "imei", "gpsType", "id"]))
-            vehicleService.UpdateVehicle(_.pick(state.currentVehicle, ["title", "phoneNumber", "imei", "gpsType", "id"]))
+            vehicleService.UpdateVehicle(_.pick(state.currentVehicle, ["title", "phoneNumber", "id"]))
                 .then(response => {
                     if (response.data.success) {
 
@@ -1281,7 +1311,7 @@ const UserProfile = (props) => {
     }
     const handleSubmitCreateVehicleInfo = (values) => {
 
-        console.log('submit', values);
+        //console.log('submit', values);
         let parameters = {
             ..._.pick(values, ["title", "phoneNumber", "imei", "driverName"]),
             vehicleType: values.selectVehicleType.value
@@ -1343,7 +1373,7 @@ const UserProfile = (props) => {
         createVehicleInfoToggle();
     }
     const handleSelectedVehicleType = (value) => {
-        console.log('handle selected vehicle type', value, state);
+        //console.log('handle selected vehicle type', value, state);
         setState(prevState => {
             return {
                 ...prevState,
@@ -1352,7 +1382,7 @@ const UserProfile = (props) => {
         })
     }
     const handleSelectedVehicleBrand = (selectedValue) => {
-        console.log('handle selected vehicle brand', selectedValue);
+        //console.log('handle selected vehicle brand', selectedValue);
         let temp = state.companyTypes.filter(c => c.id === selectedValue.value);
         if (temp.length > 0) {
             setState(prevState => {
@@ -1371,7 +1401,7 @@ const UserProfile = (props) => {
         }
     }
     const handleSelectedVehicleModel = (selectedValue) => {
-        console.log('handle selected vehicle model', selectedValue);
+        //console.log('handle selected vehicle model', selectedValue);
         setState(prevState => {
             return {
                 ...prevState,
@@ -1385,13 +1415,13 @@ const UserProfile = (props) => {
     //#region Assign Vehicle Info --------------------------------------
 
     const handleAssignVehicleInfo = async (record) => {
-        console.log('vehicle info for assigning', record);
+        //console.log('vehicle info for assigning', record);
         try {
 
             const { data } = await vehicleService.GetVehicleAssignUser(record.id);
-            console.log(data)
+            //console.log(data)
             if (data.success && data.result.length > 0) {
-                console.log('assign', data)
+                //console.log('assign', data)
                 setState(prevState => {
                     return {
                         ...prevState,
@@ -1403,15 +1433,24 @@ const UserProfile = (props) => {
                 assignVehicleInfoToggle();
             }
             else if (data.success === false || data.result.length === 0) {
-                toast.error('نتایجی یافت نشد')
+                //toast.error('نتایجی یافت نشد')
+                setState(prevState => {
+                    return {
+                        ...prevState,
+                        currentVehicleAssignInfo: [],
+                        currentVehicle: record,
+                        showVehicleMenu: false
+                    }
+                })
+                assignVehicleInfoToggle();
             }
         } catch (error) {
-            console.log(error)
+            //console.log(error)
         }
     }
 
     const assignVehicleInfoToggle = () => {
-        console.log('modal assign')
+        //console.log('modal assign')
         setState(prevState => {
             return {
                 ...prevState,
@@ -1421,14 +1460,14 @@ const UserProfile = (props) => {
     }
 
     const handleDeleteAssignVehicleInfo = async (record) => {
-        console.log('vehicle info for delete assign', record);
+        //console.log('vehicle info for delete assign', record);
         try {
 
             const { data } = await assignService.DeleteAssign(record.id);
             //console.log(data)
             if (data.success) {
                 const temp = state.currentVehicleAssignInfo.filter(c => c.id !== record.id);
-                console.log('assign', temp)
+                //console.log('assign', temp)
                 setState(prevState => {
                     return {
                         ...prevState,
@@ -1439,13 +1478,13 @@ const UserProfile = (props) => {
             }
 
         } catch (error) {
-            console.log(error)
+            //console.log(error)
         }
     }
 
     const handleSubmitAssignVehicleInfo = async (values, { setSubmitting }) => {
         setSubmitting(true);
-        console.log('state submitting', state);
+        //console.log('state submitting', state, values);
         if (state.currentVehicle && state.currentVehicle.id) {
             try {
 
@@ -1456,7 +1495,7 @@ const UserProfile = (props) => {
                 //console.log(data)
                 if (data.success) {
                     const response = await vehicleService.GetVehicleAssignUser(state.currentVehicle.id);
-                    console.log(response.data)
+                    //console.log(response.data)
                     if (response.data.success && response.data.result.length > 0) {
                         //console.log('assign', data)
                         setState(prevState => {
@@ -1469,7 +1508,7 @@ const UserProfile = (props) => {
                     }
                 }
             } catch (error) {
-                console.log(error)
+                //console.log(error)
             }
         }
         else {
@@ -1497,23 +1536,23 @@ const UserProfile = (props) => {
     }
 
     const MyComponent = () => {
-        const map = useMapEvents({
-            click: (e) => {
-                if (state.latlng && state.latlng.lat && state.latlng.lng) {
+        // const map = useLeaflet({
+        //     click: (e) => {
+        //         if (state.latlng && state.latlng.lat && state.latlng.lng) {
 
-                    console.log(state.latlng)
-                    // Leaflet.marker([state.latlng.lat, state.latlng.lng], { DefaultIcon }).removeFrom(map);
-                }
-                const { lat, lng } = e.latlng;
-                //Leaflet.marker([lat, lng], { DefaultIcon }).addTo(map);
-                setState(preState => {
-                    return {
-                        ...preState,
-                        latlng: e.latlng
-                    }
-                });
-            }
-        });
+        //             console.log(state.latlng)
+        //             // Leaflet.marker([state.latlng.lat, state.latlng.lng], { DefaultIcon }).removeFrom(map);
+        //         }
+        //         const { lat, lng } = e.latlng;
+        //         //Leaflet.marker([lat, lng], { DefaultIcon }).addTo(map);
+        //         setState(preState => {
+        //             return {
+        //                 ...preState,
+        //                 latlng: e.latlng
+        //             }
+        //         });
+        //     }
+        // });
         return null;
     }
 
@@ -1551,7 +1590,7 @@ const UserProfile = (props) => {
                                                     current: currentPage,
                                                     position: ['topLeft'],
                                                     onChange: (page, pageSize) => {
-                                                        console.log('current page: ', page)
+                                                        //console.log('current page: ', page)
                                                         setPage(page);
                                                     }
                                                 }}
@@ -1613,7 +1652,7 @@ const UserProfile = (props) => {
                                                     <img src={state.currentVehicle.isAccAlarmEnabled === true ? VehicleAccAlarmOnPNG : VehicleAccAlarmOffPNG} alt="AccAlarm" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="top" target="vehicleAccAlarmButton">
-                                                    Acc Alarm
+                                                    هشدار دزدگیر
                                                 </UncontrolledTooltip>
                                             </button>
 
@@ -1644,7 +1683,7 @@ const UserProfile = (props) => {
                                                     <img src={VehicleTurnOnPNG} alt="VehicleTurnOnPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="top" target="vehicleTurnOnButton">
-                                                    Vehicle Switch ON/OFF
+                                                    روشن/خاموش کردن وسیله
                                                 </UncontrolledTooltip>
                                             </button>
                                             {/* <Button
@@ -1674,7 +1713,7 @@ const UserProfile = (props) => {
                                                     <img src={BatterytheftPNG} alt="BatterytheftPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="left" target="batteryCutOffButton">
-                                                    Battery Cut Off
+                                                    جداشدن باتری از خودرو
                                                 </UncontrolledTooltip>
 
                                             </button>
@@ -1706,7 +1745,7 @@ const UserProfile = (props) => {
                                                     <img src={LocationConstraintPNG} alt="LocationConstraintPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="top" target="overDistanceButton">
-                                                    Over Distance {state.currentVehicle.overDistance}
+                                                    خروج از محدوده ی تعیین شده {state.currentVehicle.overDistance} KM
                                                 </UncontrolledTooltip>
 
                                             </button>
@@ -1737,7 +1776,7 @@ const UserProfile = (props) => {
                                                     <img src={OpenDoorCarPNG} alt="OpenDoorCarPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="bottom" target="openDoorCarButton">
-                                                    Doors Alarm
+                                                    باز شدن درب خودرو
                                                 </UncontrolledTooltip>
                                             </button>
                                             {/* <Button
@@ -1767,7 +1806,7 @@ const UserProfile = (props) => {
                                                     <img src={ShockCarPNG} alt="ShockCarPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="bottom" target="shockCarButton">
-                                                    Shock Alarm
+                                                    لرزش و تکان خوردن خودرو
                                                 </UncontrolledTooltip>
                                             </button>
                                             {/* <Button
@@ -1798,7 +1837,7 @@ const UserProfile = (props) => {
                                                     <img src={SpeedometerPNG} alt="SpeedometerPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="bottom" target="overSpeedButton">
-                                                    Over Speed {state.currentVehicle.overSpeed} KM/H
+                                                    تخطی از سرعت تعیین شده {state.currentVehicle.overSpeed} KM/H
                                                 </UncontrolledTooltip>
 
                                             </button>
@@ -1829,7 +1868,7 @@ const UserProfile = (props) => {
                                                     <img src={StopCarPNG} alt="StopCarPNG" width="50wh" />
                                                 </div>
                                                 <UncontrolledTooltip placement="bottom" target="StopCarButton">
-                                                    Stop Car
+                                                    متوقف کردن خودرو
                                                 </UncontrolledTooltip>
 
                                             </button>
@@ -1859,8 +1898,11 @@ const UserProfile = (props) => {
                                                 <div className="logo-img">
                                                     <img src={state.currentVehicle.isTrackerMode === true ? TrackerModePNG : MonitorModePNG} alt="MonitorModePNG" width="50wh" />
                                                 </div>
-                                                <UncontrolledTooltip placement="right" target="TrackerModeOrMonitorModeButton">
+                                                {/* <UncontrolledTooltip placement="right" target="TrackerModeOrMonitorModeButton">
                                                     {state.currentVehicle.isTrackerMode === true ? 'Tracker Mode On' : 'Monitor Mode On'}
+                                                </UncontrolledTooltip> */}
+                                                <UncontrolledTooltip placement="right" target="TrackerModeOrMonitorModeButton">
+                                                    {state.currentVehicle.isTrackerMode === true ? 'حالت ردیابی' : 'حالت مانیتورینگ'}
                                                 </UncontrolledTooltip>
 
                                             </button>
@@ -1950,7 +1992,19 @@ const UserProfile = (props) => {
 
                     <Row className=" mt-1">
                         <Col md="12" className="mt-2">
-                            <MapContainer
+
+                            <Map center={state.center} zoom={13} onClick={handleClick} style={{ height: "20em" }}>
+                                <TileLayer
+                                    url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'
+                                />
+
+                                {state.latlng && state.latlng.lat && state.latlng.lng && <MyMarker position={state.latlng}>
+                                    <Popup position={state.latlng}>
+                                        Current location: <pre>{JSON.stringify(state.latlng, null, 2)}</pre>
+                                    </Popup>
+                                </MyMarker>}
+                            </Map>
+                            {/* <MapContainer
                                 center={state.center}
                                 zoom={13}
                                 zoomAnimation={true}
@@ -1969,7 +2023,7 @@ const UserProfile = (props) => {
                                             Current location: <pre>{JSON.stringify(state.latlng, null, 2)}</pre>
                                         </Popup>
                                     </Marker>}
-                            </MapContainer>
+                            </MapContainer> */}
                         </Col>
                     </Row>
 
@@ -1995,7 +2049,7 @@ const UserProfile = (props) => {
                 <ModalBody>
                     {state.currentVehicle.id && <React.Fragment>
                         <Row>
-                            <Col md="6">
+                            <Col md="12">
                                 <input
                                     className="form-control"
                                     value={state.currentVehicle.title}
@@ -2004,7 +2058,7 @@ const UserProfile = (props) => {
                                     placeholder="نام وسیله"
                                 />
                             </Col>
-                            <Col md="6">
+                            {/* <Col md="6">
                                 <input
                                     className="form-control"
                                     value={state.currentVehicle.imei}
@@ -2012,10 +2066,10 @@ const UserProfile = (props) => {
                                     onChange={(e) => handleEditVehicleIMEIChange(e.target.value)}
                                     placeholder="IMEI"
                                 />
-                            </Col>
+                            </Col> */}
                         </Row>
                         <Row>
-                            <Col md="6" className="mt-1">
+                            <Col md="12" className="mt-1">
                                 <input
                                     className="form-control"
                                     value={state.currentVehicle.phoneNumber}
@@ -2024,7 +2078,7 @@ const UserProfile = (props) => {
                                     placeholder="شماره موبایل"
                                 />
                             </Col>
-                            <Col md="6" className="mt-1">
+                            {/* <Col md="6" className="mt-1">
                                 <Select
                                     className="basic-single"
                                     classNamePrefix="select"
@@ -2034,7 +2088,7 @@ const UserProfile = (props) => {
                                     placeholder="نوع GPS"
                                     onChange={(value) => handleEditVehicleGpsTypeChange(value)}
                                 />
-                            </Col>
+                            </Col> */}
                         </Row>
                     </React.Fragment>
                     }
@@ -2093,7 +2147,7 @@ const UserProfile = (props) => {
                     >
                         {(formik) => {
                             ////console.log("Formik props values", formik);
-                            console.log(formik)
+                           // console.log(formik)
                             return (
                                 <React.Fragment>
                                     <Form>
@@ -2106,7 +2160,7 @@ const UserProfile = (props) => {
                                                     name="phoneNumber"
                                                     id="phoneNumber"
                                                     className="ltr"
-                                                    placeholder="شماره موبایل"
+                                                    placeholder="شماره سیم کارت دستگاه"
                                                 />
                                             </Col>
                                             <Col md="6" style={{ marginTop: "0.1vh", marginBottom: "-4vh" }}>
@@ -2140,7 +2194,7 @@ const UserProfile = (props) => {
                                                     name="imei"
                                                     id="imei"
                                                     className="ltr"
-                                                    placeholder="کد IMEI"
+                                                    placeholder="کد وسیله"
                                                 />
                                             </Col>
                                         </Row>
@@ -2286,7 +2340,7 @@ const UserProfile = (props) => {
                     >
                         {(formik) => {
                             ////console.log("Formik props values", formik);
-                            console.log(formik)
+                            //console.log(formik)
                             return (
                                 <React.Fragment>
                                     <Form>

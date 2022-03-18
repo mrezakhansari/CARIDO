@@ -101,7 +101,7 @@ const ReportPage = (props) => {
                                         current: currentPage,
                                         position: ['topLeft'],
                                         onChange: (page, pageSize) => {
-                                            console.log('current page: ', page)
+                                            //console.log('current page: ', page)
                                             setPage(page);
                                         }
                                     }}

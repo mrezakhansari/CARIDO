@@ -11,7 +11,7 @@ const Tree = ({ items, depth = 0, onChangeTree, disabled, colorIndex = 0, sortIn
 
     let selectedColor = colors[colorIndex % colors.length];
     let selectedIndex = indexes[sortIndex % colors.length];
-    console.log(selectedColor)
+    //console.log(selectedColor)
 
     return items.map(item => (
         // <React.Fragment key={item.name}>

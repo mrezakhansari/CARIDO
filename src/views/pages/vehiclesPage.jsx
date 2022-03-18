@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Row, Col, Button, FormGroup, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { toast } from 'react-toastify';
-import { Table, Tag, Space, ConfigProvider } from 'antd';
+import { Table, Tag, Space, ConfigProvider, Input } from 'antd';
 import _ from 'lodash';
 import * as vehicleService from '../../services/vehicleService';
 import { Formik, Form } from "formik";
@@ -11,13 +11,16 @@ import "antd/dist/antd.css";
 import css from '../../assets/css/vendors/customAntdTableReport.css';
 import MapPNG from '../../assets/icons/Map.png';
 import Leaflet from 'leaflet';
-import { MapContainer, TileLayer, Popup, Marker } from 'react-leaflet'
+import { MapContainer, TileLayer, Popup, Marker, Map as LeafletMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import { Trash2, Users, X, Check } from "react-feather";
 import he_IL from "antd/es/locale/fa_IR";
+import { SearchOutlined } from '@ant-design/icons';
+import Highlighter from 'react-highlight-words';
+import RotatedMarker from '../../components/common/RotatedMarker';
 
 toast.configure({ bodyClassName: "customFont" });
 
@@ -29,7 +32,12 @@ let DefaultIcon = Leaflet.icon({
 });
 Leaflet.Marker.prototype.options.icon = DefaultIcon;
 
+
+var searchInput;
+
 const VehiclesPage = (props) => {
+
+    const [markerAngle, setMarkerAngle] = useState(0);
 
     //#region Variables and Initial Functions -----------------------------------------
 
@@ -54,7 +62,7 @@ const VehiclesPage = (props) => {
 
     const getRemainDay = (text) => {
         if (text) {
-           // console.log(text)
+            // console.log(text)
             let temp = text.split(":")[0];
             return parseInt(temp);
         }
@@ -82,6 +90,81 @@ const VehiclesPage = (props) => {
 
     const [currentPage, setPage] = React.useState(1);
 
+
+
+    const getColumnSearchProps = dataIndex => ({
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+            <div style={{ padding: 8 }}>
+                <Input
+                    ref={node => {
+                        searchInput = node;
+                        // setSearchInput({searchInput:node});
+                    }}
+                    placeholder='جستجو'
+                    value={selectedKeys[0]}
+                    onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                    style={{ marginBottom: 8, display: 'block' }}
+                />
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        جستجو
+                    </Button>
+                    <Button onClick={() => handleReset(clearFilters)} size="small" style={{ width: 90 }}>
+                        لغو
+                    </Button>
+                    <Button
+                        type="link"
+                        size="small"
+                        onClick={() => {
+                            confirm({ closeDropdown: false });
+                            setState(prevState => {
+                                return {
+                                    ...prevState,
+                                    searchText: selectedKeys[0],
+                                    searchedColumn: dataIndex,
+                                }
+                            })
+                        }}
+                    >
+                        فیلتر
+                    </Button>
+                </Space>
+            </div>
+        ),
+        filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+        onFilter: (value, record) =>
+            record[dataIndex]
+                ? record[dataIndex].toString().toLowerCase().includes(value.toLowerCase())
+                : '',
+        onFilterDropdownVisibleChange: visible => {
+            if (visible) {
+                setTimeout(() =>
+                    searchInput.select()
+                    // searchInput.select()
+                    , 100);
+            }
+        },
+        render: text =>
+            state.searchedColumn === dataIndex ? (
+                <Highlighter
+                    highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+                    searchWords={[state.searchText]}
+                    autoEscape
+                    textToHighlight={text ? text.toString() : ''}
+                />
+            ) : (
+                text
+            ),
+    });
+
+
     const Columns = [
         {
             title: 'ردیف',
@@ -100,31 +183,36 @@ const VehiclesPage = (props) => {
             dataIndex: 'imei',
             key: 'imei',
             width: '7em',
+            ...getColumnSearchProps('imei'),
             render: (text) => <Tag color="cyan">{text}</Tag>
         },
         {
             title: 'خودرو',
             dataIndex: 'title',
             key: 'carName',
-            width: '5em'
+            width: '5em',
+            ...getColumnSearchProps('title'),
         },
         {
             title: 'نام کاربر',
             //dataIndex: 'user.fullName',
             key: 'fullName',
             width: '6em',
+            // ...getColumnSearchProps('fullName'),
             render: (text, record) => <span style={{ direction: "ltr" }}>{record.user && record.user.name}</span>,
         },
         {
             title: 'سیم کارت GPS',
             dataIndex: 'phoneNumber',
             key: 'phoneNumber',
+            ...getColumnSearchProps('phoneNumber'),
             render: (text, record) => <span style={{ direction: "ltr" }}>{text}</span>,
             width: '5em'
         },
         {
             title: 'شماره مدیر دستگاه',
             key: 'userName',
+            //...getColumnSearchProps('userName'),
             render: (text, record) => <span style={{ direction: "ltr" }}>{record.user && record.user.userName}</span>,
             width: '5em'
         },
@@ -240,10 +328,10 @@ const VehiclesPage = (props) => {
     }
 
     const handleVehicleStatus = (vehicle) => {
-        console.log(vehicle)
+        //console.log(vehicle)
         if (vehicle.isActive) {
             vehicleService.DisableVehicle({ id: vehicle.id }).then(response => {
-                console.log(response)
+                //console.log(response)
                 if (response.data.success && response.data.result) {
                     const vehicles = _.cloneDeep(state.vehiclesList);
                     const index = _(vehicles).findIndex(c => c.id === vehicle.id);
@@ -307,7 +395,9 @@ const VehiclesPage = (props) => {
         Expired: 0,
         showMap: false,
         currentVehicleCenterLocation: [],
-        currentVehicleAssignInfo: []
+        currentVehicleAssignInfo: [],
+        searchText: '',
+        searchedColumn: ''
     });
 
     const createDataModelForDataTabel = (data) => {
@@ -321,11 +411,12 @@ const VehiclesPage = (props) => {
             .then(response => {
                 if (response.data.success && response.data.result.length > 0) {
                     const result = response.data.result;
+                    //console.log('414 vehicle page', result);
                     const scan = result.length;
-                    const installed = result.filter(c => c.user !== null).length;
+                    const installed = result.filter(c => c.user !== null && c.user.userName != null).length;
                     const active = result.filter(c => c.user !== null && c.isActive === true).length;
-                    const lessThan10Days = 0;
-                    console.log(result, result.length, installed, active)
+                    const lessThan10Days = result.filter(c=>c.remain && c.remain !=="" && getRemainDay(c.remain) < 10).length;
+                    //console.log(result, result.length, installed, active)
                     setState(prevState => {
                         return {
                             ...prevState,
@@ -371,7 +462,7 @@ const VehiclesPage = (props) => {
 
     const handleSubmitCreateDeviceInfo = (values) => {
 
-        console.log(values);
+        //console.log(values);
         //return;
         vehicleService.CreateByAdmin({ ..._.pick(values, ["imei"]), gpsType: values.gpsType.value })
             .then(response => {
@@ -414,7 +505,7 @@ const VehiclesPage = (props) => {
     //#region DELETE Vehicle INFO EVENTS ---------------------------------------
 
     const handleDeleteVehicleInfo = (vehicleInfo) => {
-        console.log('userData for delete', vehicleInfo);
+        //console.log('userData for delete', vehicleInfo);
         const result = { ..._(state.vehiclesList).filter(c => c.id === vehicleInfo.id).first() };
         setState(prevState => {
             return {
@@ -445,7 +536,7 @@ const VehiclesPage = (props) => {
     }
 
     const handleSubmitDeleteVehicleInfo = () => {
-        console.log(state.currentVehicle.id);
+        //console.log(state.currentVehicle.id);
         vehicleService.DeleteVehicle(state.currentVehicle.id).then(response => {
             if (response.data.success) {
                 toast.success('User info has been delete successfully');
@@ -472,7 +563,7 @@ const VehiclesPage = (props) => {
                 deleteToggle();
             }
         }).catch(error => {
-            console.log(error.message);
+            //console.log(error.message);
             deleteToggle();
             setState(prevState => {
                 return {
@@ -487,13 +578,13 @@ const VehiclesPage = (props) => {
     //#region Assign Vehicle INFO EVENTS-----------------------------------------------------------------
 
     const handleAssignVehicleInfo = async (vehicleInfo) => {
-        console.log('vehicle info for assigning', vehicleInfo);
+       // console.log('vehicle info for assigning', vehicleInfo);
         try {
 
             const { data } = await vehicleService.GetVehicleAssignUser(vehicleInfo.id);
-            console.log(data)
+            //console.log(data)
             if (data.success && data.result.length > 0) {
-                console.log('assign', data)
+                //console.log('assign', data)
                 setState(prevState => {
                     return {
                         ...prevState,
@@ -506,7 +597,7 @@ const VehiclesPage = (props) => {
                 toast.error('نتایجی یافت نشد')
             }
         } catch (error) {
-            console.log(error)
+           // console.log(error)
         }
     }
 
@@ -520,6 +611,28 @@ const VehiclesPage = (props) => {
     }
     //#endregion --------------------------------------------------------------
 
+    //#region Search Box ----------------------
+    const handleSearch = (selectedKeys, confirm, dataIndex) => {
+        confirm();
+        setState(prevState => {
+            return {
+                ...prevState,
+                searchText: selectedKeys[0],
+                searchedColumn: dataIndex,
+            }
+        })
+    };
+
+    const handleReset = clearFilters => {
+        clearFilters();
+        setState(prevState => {
+            return {
+                ...prevState,
+                searchText: ''
+            }
+        })
+    };
+    //#endregion  --------------------------------
 
     return (
         <React.Fragment>
@@ -527,7 +640,7 @@ const VehiclesPage = (props) => {
             <Row className="customBackgroundColor " style={{ width: '100%', height: '100%' }}>
                 <Col md="12" >
                     {state.showMap &&
-                        <FormGroup>
+                        <React.Fragment>
                             <Row className="d-flex justify-content-md-end">
                                 <Col md="2">
                                     <button className="btn btn-transparent ltr"
@@ -536,37 +649,48 @@ const VehiclesPage = (props) => {
                                         onClick={handleReturnToMainMenu}>بازگشت</button>
                                 </Col>
                             </Row>
-                            <Row className="justify-content-md-center">
-                                <Col md="12">
-                                    <MapContainer center={state.currentVehicleCenterLocation} zoom={13} style={{ height: '70em' }}>
+                            <Row className=" mt-1">
+                                <Col md="12" className="mt-2">
+                                    <LeafletMap center={state.currentVehicleCenterLocation}
+                                        zoom={13} style={{ height: "100vh" }}>
+                                        <TileLayer
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                        />
+                                        <RotatedMarker
+                                            position={state.currentVehicleCenterLocation}
+                                            icon={DefaultIcon}
+                                            rotationAngle={markerAngle}
+                                            rotationOrigin="center"
+                                        />
+                                    </LeafletMap>
+                                    {/* <MapContainer
+                                        center={state.currentVehicleCenterLocation}
+                                        zoom={13}
+                                        zoomAnimation={true}
+                                        markerZoomAnimation={true}
+                                        //style={{ height: "45em" }}
+                                        className="leaflet-container"
+                                    >
                                         <TileLayer
                                             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         //url="http://194.36.174.178/{z}/{x}/{y}.pbf"
                                         />
-                                        <Marker position={state.currentVehicleCenterLocation}>
-                                            <Popup>
-                                                <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
-                                                    <span>آخرین  لوکیشن</span>
-                                                </div>
-                                            </Popup>
-                                        </Marker>
 
-                                    </MapContainer>
+                                        <Marker position={state.currentVehicleCenterLocation}>
+                                            <div dir="rtl" className="customFont" style={{ textAlign: "right" }}>
+                                                <span>آخرین  لوکیشن</span>
+                                            </div>
+                                        </Marker>
+                                    </MapContainer> */}
                                 </Col>
                             </Row>
-                        </FormGroup>
+                        </React.Fragment>
                     }
                     {!state.showMap &&
                         <React.Fragment>
                             <Row className="d-flex justify-content-md-end">
-
-                                {/* <Col md="2" style={{ fontWeight: "bold", fontSize: "1em", color: 'white' }} className="mt-1 text-md-center"> اسکن : <Tag color="magenta">{state.scan}</Tag></Col>
-                                <Col md="2" style={{ fontWeight: "bold", fontSize: "1em", color: 'white' }} className="mt-1 text-md-right"> فعال : <Tag color="orange">{state.active}</Tag></Col>
-                                <Col md="2" style={{ fontWeight: "bold", fontSize: "1em", color: 'white' }} className="mt-1 text-md-right"> نصب شده : <Tag color="pink">{state.installed}</Tag></Col>
-                                <Col md="2" style={{ fontWeight: "bold", fontSize: "1em", color: 'white' }} className="mt-1 text-md-right"> منقضی شده : <Tag color="processing">{state.Expired}</Tag></Col>
-                                <Col md="2" style={{ fontWeight: "bold", fontSize: "1em", color: 'white' }} className="mt-1 text-md-right"> کمتر از 10 روز  : <Tag color="purple">{state.lessThen10Days}</Tag></Col>
-                                 */}
                                 <Col md="2">
                                     <button className="btn btn-transparent"
                                         style={{ direction: 'ltr', float: 'left', backgroundColor: '#1597E5' }}
@@ -604,7 +728,7 @@ const VehiclesPage = (props) => {
                                                 current: currentPage,
                                                 position: ['topLeft'],
                                                 onChange: (page, pageSize) => {
-                                                    console.log('current page: ', page)
+                                                   // console.log('current page: ', page)
                                                     setPage(page);
                                                 }
                                             }}

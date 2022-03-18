@@ -14,7 +14,7 @@ const CheckboxGroup = (props) => {
             {/* <Row> */}
             <Field name={name} {...rest} className={classN}>
                 {({ form, meta }) => {
-                    console.log("Field", options);
+                    //console.log("Field", options);
                     return (
                         <div>
                             <Checkbox.Group
