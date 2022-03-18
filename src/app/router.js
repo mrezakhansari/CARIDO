@@ -32,6 +32,7 @@ const LazyReportPage = lazy(() => import("../views/pages/reportPage"));
 //#endregion --------------------------------------------------------------------------
 
 
+
 const LazyErrorPage = lazy(() => import("../views/pages/error"));
 
 class Router extends Component {
@@ -47,7 +48,6 @@ class Router extends Component {
       // Set the directory path if you are deplying in sub-folder
       <BrowserRouter basename="/">
         <Switch>
-
           <FirstPageRoute
             exact
             path={urls.FirstPage}

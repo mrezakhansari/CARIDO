@@ -14,5 +14,6 @@
     "PaymentResult":"/paymentResult",
     "UserProfile":"/userProfile",
     "Home": "/",
-    "FirstPage":"/firstPage"
+    "FirstPage":"/firstPage",
+    "reportSpeedStatistics":"/reportSpeedStatistics"
 }
