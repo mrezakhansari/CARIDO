@@ -34,21 +34,7 @@ import * as signalR from '@aspnet/signalr';
 import RotatedMarker from '../../components/common/RotatedMarker';
 import * as Icon from "react-feather";
 
-// import ChartistGraph from "react-chartist";
-// import ChartistLib from "chartist";
-// import "chartist/dist/chartist.min.css";
-// import "../../assets/scss/views/charts/chartist.scss";
 
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
 
@@ -125,16 +111,6 @@ const MyMarker = props => {
 
 const MapTracking = () => {
 
-  // ChartJS.register(
-  //   CategoryScale,
-  //   LinearScale,
-  //   PointElement,
-  //   LineElement,
-  //   Title,
-  //   Tooltip,
-  //   Legend
-  // );
-
 
   const bearingBetweenLocations = (latLng1, latLng2) => {
 
@@ -174,7 +150,7 @@ const MapTracking = () => {
       s += minute > 0 ? ` ${minute} دقیقه  ` : "";
       s += minute > 0 && second > 0 ? `و` : ``
       s += second > 0 ? ` ${second} ثانیه` : "";
-      console.log(s, day, hour, minute, second)
+      //console.log(s, day, hour, minute, second)
       return s;
     }
     return "";
@@ -197,6 +173,8 @@ const MapTracking = () => {
     }
     return "";
   };
+
+  const [consumption, setConsumption] = useState(0);
 
   const [state, setState] = useState({
     trackingList: [],
@@ -221,7 +199,9 @@ const MapTracking = () => {
     showOnlineMap: false,
     connection: {},
     onlineInfo: {},
-    gpsNav: []
+    gpsNav: [],
+    totalDistance: 0,
+    totalConsumption: 0
   });
 
   const columns = [
@@ -298,7 +278,7 @@ const MapTracking = () => {
       width: "6em",
     },
     {
-      title: "نمودار سرعت",
+      title: "گزارش وضعیت",
       key: "action",
       render: (text, record) => (
         <Space
@@ -310,18 +290,6 @@ const MapTracking = () => {
             onClick={() => handleSpeedReportInfo(record)}>
             <Icon.BarChart size={16} />
           </Button>
-          {/* <div
-            className="btn logo-img mt-1"
-            size="sm"
-            onClick={() => handleMapTrackingOnline(record)}
-          >
-            <img
-              src={HistoryTrackingPNG}
-              alt="logo"
-              width="20%"
-              title="Tracking History"
-            />
-          </div> */}
         </Space>
       ),
       width: "6em",
@@ -567,6 +535,7 @@ const MapTracking = () => {
               trackingListInfo: [],
               firstPoint: [],
               lastPoint: [],
+              totalDistance: 0
             }
           });
 
@@ -580,12 +549,24 @@ const MapTracking = () => {
               .map((c) => {
                 return [c.lat, c.lon];
               });
-            const firstPoint = _(tempList)
-              .orderBy((c) => c.creationTime)
+
+            // let totalDistance = 0;
+            // if (tempList.length > 1) {
+            //   for (let d = 0; d < tempList.length - 1; d++) {
+            //     totalDistance += getDistance(tempList[d][0], tempList[d + 1][0], tempList[d][1], tempList[d + 1][1])
+            //   }
+            // }
+            const firstPoint = _(result.gpsLocations)
+              .orderBy((c) => c.id).map((m) => {
+                return [m.lat, m.lon]
+              })
               .head();
-            const lastPoint = _(tempList)
-              .orderBy((c) => c.creationTime)
+            const lastPoint = _(result.gpsLocations)
+              .orderBy((c) => c.id).map((m) => {
+                return [m.lat, m.lon]
+              })
               .last();
+            //console.log('templist', totalDistance, firstPoint, lastPoint, result);
             //console.log('GetVehicleGpsLocationHistory', response.data);
             if (tempList.length > 1) {
               const temp1 = _(tempList).head();
@@ -616,6 +597,17 @@ const MapTracking = () => {
                 lastIndex = i;
               }
             }
+
+            // if (firstPoint.length > 0 && lastPoint.length > 0) {
+
+            //   let stopList = result.stop.filter(c=>c.lat !== firstPoint[0] && c.lat !== lastPoint[0]);
+            //   setState(preState => {
+            //     return {
+            //       ...preState,
+            //       stopListInfo: stopList,
+            //     }
+            //   });
+            // }
 
 
 
@@ -677,11 +669,25 @@ const MapTracking = () => {
               return toast.error("در این بازه ی زمانی حرکتی ثبت نشده");
             }
 
+            const tempListForDis = result.gpsLocations
+            .filter((f) => f.lat !== 0 && f.lon !== 0)
+            .map((c) => {
+              return [c.lat, c.lon];
+            });
+            let totalDistance = 0;
+            if (tempListForDis.length > 1) {
+              for (let d = 0; d < tempListForDis.length - 1; d++) {
+                totalDistance += getDistance(tempListForDis[d][0], tempListForDis[d + 1][0], tempListForDis[d][1], tempListForDis[d + 1][1])
+              }
+            }
+
             let tempList = result.gpsLocations
               .filter((f) => f.lat !== 0 && f.lon !== 0);
-              var sortedObjs = tempList.sort(function (a, b) {
-                return b.id - a.id;
-              });
+            var sortedObjs = tempList.sort(function (a, b) {
+              return b.id - a.id;
+            });
+
+            
             //console.log(tempList,sortedObjs);
             const temp = {
               labels: [],
@@ -700,7 +706,8 @@ const MapTracking = () => {
                 ...preState,
                 trackingListInfo: [temp],
                 showMap: false,
-                showSpeedReport: true
+                showSpeedReport: true,
+                totalDistance: totalDistance.toFixed(2)
               }
             });
           }
@@ -727,6 +734,47 @@ const MapTracking = () => {
       }
     });
   };
+
+  const getDistance = (lat1, lat2, lon1, lon2) => {
+
+    // The math module contains a function
+    // named toRadians which converts from
+    // degrees to radians.
+    lon1 = lon1 * Math.PI / 180;
+    lon2 = lon2 * Math.PI / 180;
+    lat1 = lat1 * Math.PI / 180;
+    lat2 = lat2 * Math.PI / 180;
+
+    // Haversine formula
+    let dlon = lon2 - lon1;
+    let dlat = lat2 - lat1;
+    let a = Math.pow(Math.sin(dlat / 2), 2)
+      + Math.cos(lat1) * Math.cos(lat2)
+      * Math.pow(Math.sin(dlon / 2), 2);
+
+    let c = 2 * Math.asin(Math.sqrt(a));
+
+    // Radius of earth in kilometers. Use 3956
+    // for miles
+    let r = 6371;
+
+    // calculate the result
+    return (c * r);
+  }
+
+  const handleConsumption = (event) => {
+    if (event.key === 'Enter') {
+      if (state.totalDistance !== 0 && consumption !== 0) {
+        let temp = (state.totalDistance * consumption) / 100;
+        setState(preState => {
+          return {
+            ...preState,
+            totalConsumption: temp
+          }
+        });
+      }
+    }
+  }
 
   return (
 
@@ -833,7 +881,7 @@ const MapTracking = () => {
                     }}
                     className="d-flex align-items-start justify-content-start"
                   >
-                    وسیله انتخاب شده:{" "}
+                    <span>وسیله انتخاب شده:</span>
                     <Tag color="orange">{state.currentVehicle.title}</Tag>
                   </Col>
                 )}
@@ -895,6 +943,48 @@ const MapTracking = () => {
                   </Button>
                 </Col>
               </Row>
+
+              {state.showSpeedReport &&
+                <Row className="mb-2">
+                  <Col md="3">
+                    <Row>
+                      <Col md="9" style={{
+                        marginTop: "4%",
+                        marginBottom: "1%",
+                        fontWeight: "bold",
+                        fontSize: "1em",
+                      }}
+                        className="d-flex align-items-start justify-content-start">
+                        <span >میزان مصرف سوخت در 100 کیلومتر:</span>
+                      </Col>
+                      <Col md="3">
+                        <input type="number" className="form-control"
+                          onChange={e => setConsumption(e.target.value)}
+                          onKeyDown={handleConsumption} />
+                      </Col>
+                    </Row>
+
+                  </Col>
+                  <Col
+                    md="5"
+                    style={{
+                      marginTop: "1%",
+                      marginBottom: "1%",
+                      fontWeight: "bold",
+                      fontSize: "1em",
+                    }}
+                    className="d-flex align-items-start justify-content-start"
+                  >
+                    <span className="mr-1">مسافت طی شده:</span>
+                    <Tag color="geekblue">{state.totalDistance + ' کیلومتر'}</Tag>
+
+                    <span className="mr-4">میزان کل مصرف سوخت:</span>
+                    <Tag color="geekblue">{state.totalConsumption + ' لیتر'}</Tag>
+
+                  </Col>
+                </Row>
+              }
+
 
               {!state.showSpeedReport &&
                 <React.Fragment>

@@ -20,7 +20,7 @@ const MenuList = [
           //  { name: "مدیریت کاربران", key: "ADMIN-USERS", url: urls.Admin.Users, child: [] },
             { name: "مدیریت وسیله ها", key: "ADMIN-VEHICLES", url: urls.Admin.Vehicles, child: [] },
             { name: "مدیریت محصولات", key: "ADMIN-PRODUCTS", url: urls.Admin.Products, child: [] },
-            { name: "گزارش", key: "ADMIN-REPORT", url: urls.Admin.Report, child: [] }
+            { name: "گزارش انواع خودرو", key: "ADMIN-REPORT", url: urls.Admin.Report, child: [] }
         ]
     },
     {
